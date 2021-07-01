@@ -62,6 +62,8 @@ namespace Htc.Mock.GridLib
       if (result.HasResult)
       {
         StoreResult(request.Id, result.Result, result.Output);
+        if(request.IsAggregationRequest)
+          StoreResult(request.ParentId, result.Result, result.Output);
         return;
       }
 
