@@ -1,4 +1,4 @@
-﻿/* DistributedRequestProcessor.cs is part of the Htc.Mock.GridLib solution.
+﻿/* DistributedRequestRunner.cs is part of the Htc.Mock.GridLib solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -30,12 +30,12 @@ namespace Htc.Mock.GridLib
 {
 
   [PublicAPI]
-  public class DistributedRequestProcessor
+  public class DistributedRequestRunner
   {
     private readonly RequestProcessor requestProcessor_;
 
     /// <summary>
-    /// Builds a <c>DistributedRequestProcessor</c>
+    /// Builds a <c>DistributedRequestRunner</c>
     /// </summary>
     /// <param name="runConfiguration">Defines the properties of the current execution.
     /// It is assumed to be a session data.</param>
@@ -45,7 +45,7 @@ namespace Htc.Mock.GridLib
     /// It is assumed to be a deployment configuration.</param>
     /// <param name="smallOutput">Defines if the output size should be emulated.
     /// It is assumed to be a deployment configuration.</param>
-    public DistributedRequestProcessor(RunConfiguration runConfiguration,
+    public DistributedRequestRunner(RunConfiguration runConfiguration,
                                 bool                   fastCompute = false,
                                 bool                   useLowMem   = false,
                                 bool                   smallOutput = false)
