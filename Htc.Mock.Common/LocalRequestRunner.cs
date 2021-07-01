@@ -82,7 +82,7 @@ namespace Htc.Mock.Common
 
       var subRequestsByDepsRq = result.SubRequests
                                       .Cast<Request>()
-                                      .ToLookup(sr => sr.ResultIdsRequired.Count == 0);
+                                      .ToLookup(sr => !sr.IsAggregationRequest);
 
 
       SpawningRequestEvent?.Invoke(subRequestsByDepsRq[true].Count(), request.CurrentDepth);
