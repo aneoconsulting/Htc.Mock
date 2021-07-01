@@ -46,11 +46,10 @@ namespace Htc.Mock.Common
 
       var leaf = true;
 
-      var ran = new Random(request.Seed);
       if (request.CurrentDepth < request.Depth)
       {
         if (request.CurrentDepth == 0 ||
-            !request.IsAggregationRequest && ran.NextDouble() < runConfiguration_.SubTaskFraction)
+            !request.IsAggregationRequest && !runConfiguration_.IsLeaf(request.Id))
         {
           leaf = false;
         }
@@ -65,27 +64,30 @@ namespace Htc.Mock.Common
         // use this computation to check that the good results were retrieved
         var result = GetResultString(GetAggregateString(GetAggregationRes(inputs)));
 
-        Debug.Assert(result == GetResultString(request.Id),
-                     $"Error during the computation of task {request.Id} or one of its dependencies.");
         
-        return new RequestResult(request.Id, GetResultString(request.ParentId));
+        return new RequestResult(request.Id, result);
       }
 
-      var nbRq = Math.Max(1, runConfiguration_.GetNbSubtasks(ran) - 1);
+      var nbRq = request.Depth == 1 && request.CurrentDepth == 0
+                   ? runConfiguration_.TotalNbSubTasks
+                   : Math.Max(1, runConfiguration_.GetNbSubtasks(request.Id) - 1);
       var subRequests =
         Enumerable.Range(0, nbRq)
                   .Select(i => new Request($"{request.Id}_{i}",
-                                                 runConfiguration_.GetTaskDurationMs(ran),
-                                                 runConfiguration_.Memory, runConfiguration_.Data, ran.Next(),
+                                                 runConfiguration_.GetTaskDurationMs($"{request.Id}_{i}"),
+                                                 runConfiguration_.Memory, runConfiguration_.Data,
                                                  request.Depth, request.CurrentDepth + 1))
                   .OrderBy(rq => rq.Id)
                   .ToList();
       var subRequestIds = subRequests.Select(sr => sr.Id).ToList();
+
+      var aggregateString = GetAggregateString(GetAggregationRes(subRequestIds, GetResultString));
+
       var aggregationRequest =
-        new Request(GetAggregateString(GetAggregationRes(subRequestIds, GetResultString)),
-                          runConfiguration_.GetTaskDurationMs(ran),
-                          runConfiguration_.Memory, runConfiguration_.Data, subRequestIds, request.Id, ran.Next(),
-                          request.Depth, request.CurrentDepth + 1);
+        new Request(aggregateString,
+                    runConfiguration_.GetTaskDurationMs(aggregateString),
+                    runConfiguration_.Memory, runConfiguration_.Data, subRequestIds, request.Id,
+                    request.Depth, request.CurrentDepth + 1);
       subRequests.Add(aggregationRequest);
       return new RequestResult(request.Id, subRequests);
     }
@@ -95,8 +97,7 @@ namespace Htc.Mock.Common
     public static int GetAggregationRes(IEnumerable<string> ids, Func<string, string> resultSelector) 
       => GetAggregationRes(ids.Select(resultSelector));
 
-    public static int GetAggregationRes(IEnumerable<string> results) 
-      => results.Aggregate(0, HashCode.Combine);
+    public static int GetAggregationRes(IEnumerable<string> results) => results.GetCryptoHashCode();
 
     public static string GetAggregateString(int res) => $"Aggregate_{res}";
 

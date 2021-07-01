@@ -15,6 +15,7 @@ using JetBrains.Annotations;
 
 namespace Htc.Mock.GridLib
 {
+
   [PublicAPI]
   public class DistributedRequestProcessor
   {

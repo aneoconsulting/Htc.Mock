@@ -12,7 +12,7 @@ namespace Htc.Mock.Common
   [PublicAPI]
   public class LocalRequestRunner
   {
-    public bool ParallelRun { get; set; } = false;
+    public bool ParallelRun { get; set; } = true;
 
     private readonly RequestProcessor requestProcessor_;
 

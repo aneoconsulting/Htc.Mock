@@ -29,7 +29,6 @@ namespace Htc.Mock.Common
              outputSize, 
              Array.Empty<string>(), 
              string.Empty,
-             0,
              depth,
              0)
     {
@@ -39,7 +38,6 @@ namespace Htc.Mock.Common
                          int    durationMs,
                          int    memoryUsageKb,
                          int    outputSize,
-                         int    seed,
                          int    depth,
                          int    currentDepth)
       : this(id,
@@ -48,7 +46,6 @@ namespace Htc.Mock.Common
              outputSize, 
              Array.Empty<string>(), 
              string.Empty, 
-             seed, 
              depth,
              currentDepth)
     {
@@ -60,7 +57,6 @@ namespace Htc.Mock.Common
                          int           outputSize,
                          IList<string> resultIdsRequired,
                          string        parentId,
-                         int           seed,
                          int           depth,
                          int           currentDepth)
     {
@@ -73,7 +69,6 @@ namespace Htc.Mock.Common
       DurationMs        = durationMs;
       MemoryUsageKb     = memoryUsageKb;
       OutputSize        = outputSize;
-      Seed              = seed;
       Depth             = depth;
       CurrentDepth      = currentDepth;
       ResultIdsRequired = resultIdsRequired;
@@ -84,8 +79,6 @@ namespace Htc.Mock.Common
     public int Depth { get; }
 
     public int CurrentDepth { get; }
-
-    public int Seed { get; }
 
     public TimeSpan TotalSubtasksCalculationTime { get; }
 

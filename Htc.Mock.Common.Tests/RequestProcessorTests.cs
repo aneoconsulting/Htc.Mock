@@ -47,7 +47,7 @@ namespace Htc.Mock.Common.Tests
 
       var deps     = new[] {"Id1", "Id2"};
 
-      var request = new Request("AggregateTest",1, 1, 1, deps, "ParentTest",0,2,1);
+      var request = new Request("AggregateTest",1, 1, 1, deps, "ParentTest",2,1);
 
       var inputs           = new[] {"Id1_result", "Id2_result"};
 
@@ -76,7 +76,7 @@ namespace Htc.Mock.Common.Tests
       var configuration    = new RunConfiguration(new TimeSpan(0, 0, 1), 2, 1, 1, 1, subTaskFraction:1,minSubTasks:1);
       var requestProcessor = new RequestProcessor(fastCompute, useLowMem, smallOutput, configuration);
 
-      var request = new Request("NestTest", 1, 1, 1, 0,1,0);
+      var request = new Request("NestTest", 1, 1, 1,1,0);
 
       var requestResult = requestProcessor.GetResult(request, Array.Empty<string>());
 
