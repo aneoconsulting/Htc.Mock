@@ -51,12 +51,14 @@ namespace Htc.Mock.Common
 
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-    private static uint GetCryptoHashCodeInternals(this string input, uint hash = uint.MaxValue)
+    private static uint GetCryptoHashCodeInternals(this string input, uint hash)
     {
       var inputBytes = MemoryMarshal.AsBytes(input.AsSpan());
 
-      foreach (var b in inputBytes)
+      // ReSharper disable once ForCanBeConvertedToForeach
+      for (var index = 0; index < inputBytes.Length; index++)
       {
+        var b = inputBytes[index];
         hash = ChecksumTable[(hash ^ b) & byte.MaxValue] ^ (hash >> 8);
       }
 
@@ -64,7 +66,7 @@ namespace Htc.Mock.Common
     }
 
     [PublicAPI]
-    public static uint GetCryptoHashCode(this string input) => GetCryptoHashCodeInternals(input);
+    public static uint GetCryptoHashCode(this string input) => GetCryptoHashCodeInternals(input, uint.MaxValue);
 
     [PublicAPI]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]

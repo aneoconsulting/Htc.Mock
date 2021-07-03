@@ -31,7 +31,6 @@ namespace Htc.Mock.Common
   [PublicAPI]
   public class LocalRequestRunner
   {
-    public bool ParallelRun { get; set; } = true;
 
     private readonly RequestProcessor requestProcessor_;
 
@@ -50,7 +49,7 @@ namespace Htc.Mock.Common
       => requestProcessor_ = new RequestProcessor(true, true, true, runConfiguration);
 
 
-    public string ProcessRequest(Request request)
+    public string ProcessRequest(Request request, bool parallelRun = true)
     {
       switch (request)
       {
@@ -95,7 +94,7 @@ namespace Htc.Mock.Common
 
           SpawningRequestEvent?.Invoke(subRequestsByDepsRq[true].Count());
 
-          if (ParallelRun)
+          if (parallelRun)
           {
             Parallel.ForEach(subRequestsByDepsRq[true], leafRequest => ProcessRequest(leafRequest));
           }
