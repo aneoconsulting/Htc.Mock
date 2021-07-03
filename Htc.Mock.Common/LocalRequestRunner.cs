@@ -20,7 +20,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -40,7 +39,7 @@ namespace Htc.Mock.Common
 
     public event Action<Request> StartRequestProcessingEvent;
 
-    public event Action<int, int> SpawningRequestEvent;
+    public event Action<int> SpawningRequestEvent;
 
     /// <summary>
     /// Builds a <c>DistributedRequestProcessor</c>
@@ -53,55 +52,72 @@ namespace Htc.Mock.Common
 
     public string ProcessRequest(Request request)
     {
-      StartRequestProcessingEvent?.Invoke(request);
-      var inputs = request.ResultIdsRequired
-                          .Select(id => results_[id])
-                          .ToList();
-
-      var result = requestProcessor_.GetResult(request, inputs);
-
-      if (result.HasResult)
+      switch (request)
       {
-        if (request.IsAggregationRequest)
+        case FinalRequest finalRequest:
         {
-          if (!results_.TryAdd(request.ParentId, result.Result))
-          {
-            Console.WriteLine("Result was already written.");
-          }
-        }
-        else
-        {
+          StartRequestProcessingEvent?.Invoke(request);
+          var result = requestProcessor_.GetResult(finalRequest, Array.Empty<string>());
+
           if (!results_.TryAdd(request.Id, result.Result))
           {
             Console.WriteLine("Result was already written.");
           }
+
+          return result.Result;
         }
 
-        return result.Result;
+        case AggregationRequest aggregationRequest:
+        {
+          StartRequestProcessingEvent?.Invoke(request);
+          var result = requestProcessor_.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
+                                                                                         .Select(id => results_[id])
+                                                                                         .ToList());
+          if (!results_.TryAdd(aggregationRequest.Id, result.Result))
+          {
+            Console.WriteLine("Result was already written.");
+          }          
+          if (!results_.TryAdd(aggregationRequest.ParentId, result.Result))
+          {
+            Console.WriteLine("Result was already written.");
+          }
+
+          return result.Result;
+        }
+
+        case ComputeRequest computeRequest:
+        {
+          StartRequestProcessingEvent?.Invoke(request);
+          var result = requestProcessor_.GetResult(computeRequest, Array.Empty<string>());
+
+          var subRequestsByDepsRq = result.SubRequests
+                                          .ToLookup(sr => sr is not AggregationRequest);
+
+          SpawningRequestEvent?.Invoke(subRequestsByDepsRq[true].Count());
+
+          if (ParallelRun)
+          {
+            Parallel.ForEach(subRequestsByDepsRq[true], leafRequest => ProcessRequest(leafRequest));
+          }
+          else
+          {
+            foreach (var leafRequest in subRequestsByDepsRq[true])
+              ProcessRequest(leafRequest);
+          }
+
+          var aggregationRequest = subRequestsByDepsRq[false].Single();
+
+          SpawningRequestEvent?.Invoke(1);
+
+          ProcessRequest(aggregationRequest);
+
+          return results_[request.Id];
+        }
+
+        default:
+          throw new ArgumentException($"{typeof(Request)} is not supported.");
+
       }
-
-      var subRequestsByDepsRq = result.SubRequests
-                                      .Cast<Request>()
-                                      .ToLookup(sr => !sr.IsAggregationRequest);
-
-
-      SpawningRequestEvent?.Invoke(subRequestsByDepsRq[true].Count(), request.CurrentDepth);
-
-      if (ParallelRun)
-      {
-        Parallel.ForEach(subRequestsByDepsRq[true], leafRequest => ProcessRequest(leafRequest));
-      }
-      else
-      {
-        foreach (var leafRequest in subRequestsByDepsRq[true])
-            ProcessRequest(leafRequest);
-      }
-
-      var aggregationRequest = subRequestsByDepsRq[false].Single();
-
-      ProcessRequest(aggregationRequest);
-
-      return results_[request.Id];
     }
   }
 }

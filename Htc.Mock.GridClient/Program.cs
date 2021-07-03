@@ -33,8 +33,7 @@ namespace Htc.Mock.GridClient
                                    1000,
                                    1,
                                    1,
-                                   3,
-                                   minSubTasks: 10);
+                                   3);
 
       var request = runConfiguration.DefaultHeadRequest();
 

@@ -52,28 +52,47 @@ namespace Htc.Mock.GridLib
 
     public void ProcessRequest(Request request)
     {
-      var inputs = request.ResultIdsRequired
-                          .Select(GetResultFromId)
-                          .ToList();
 
-      var result = requestProcessor_.GetResult(request, inputs);
-
-      if (result.HasResult)
+      switch (request)
       {
-        StoreResult(request.Id, result.Result, result.Output);
-        if(request.IsAggregationRequest)
-          StoreResult(request.ParentId, result.Result, result.Output);
-        return;
-      }
+        case FinalRequest finalRequest:
+        {
+          var result = requestProcessor_.GetResult(finalRequest, Array.Empty<string>());
+          StoreResult(request.Id, result.Result, result.Output);
+          return;
+        }
 
-      foreach (var subRequest in result.SubRequests)
-      {
-        // In a real implementation, the two methods could be merged
-        // the separation is made to emphasize the two cases to handle
-        if (subRequest.ResultIdsRequired.Any())
-          SubmitNewRequestWithDependencies(request, subRequest.ResultIdsRequired);
-        else
-          SubmitNewRequest(request);
+        case AggregationRequest aggregationRequest:
+        {
+          var result = requestProcessor_.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
+                                                                                         .Select(GetResultFromId)
+                                                                                         .ToList());
+
+          StoreResult(request.Id, result.Result, result.Output);
+          StoreResult(aggregationRequest.ParentId, result.Result, result.Output);
+          return;
+        }
+
+        case ComputeRequest computeRequest:
+        {
+          var result = requestProcessor_.GetResult(computeRequest, Array.Empty<string>());
+
+          var subRequestsByDepsRq = result.SubRequests
+                                          .ToLookup(sr => sr is AggregationRequest);
+
+
+            foreach (var leafRequest in subRequestsByDepsRq[true])
+              SubmitNewRequest(leafRequest);
+
+          var aggregationRequest = subRequestsByDepsRq[false].Cast<AggregationRequest>().Single();
+
+          SubmitNewRequestWithDependencies(aggregationRequest, aggregationRequest.ResultIdsRequired);
+          return;
+        }
+
+        default:
+          throw new ArgumentException($"{typeof(Request)} is not supported.");
+
       }
     }
 

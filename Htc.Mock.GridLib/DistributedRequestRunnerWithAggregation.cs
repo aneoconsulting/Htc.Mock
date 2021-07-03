@@ -6,7 +6,6 @@
 // 
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 using Htc.Mock.Common;
@@ -39,35 +38,51 @@ namespace Htc.Mock.GridLib
 
     public void ProcessRequest(Request request)
     {
-      var inputs = request.ResultIdsRequired
-                          .Select(GetResultFromId)
-                          .ToList();
 
-      var result = requestProcessor_.GetResult(request, inputs);
-
-      if (result.HasResult)
+      switch (request)
       {
-        StoreResult(request.Id, result.Result, result.Output);
-        if(request.IsAggregationRequest)
-          StoreResult(request.ParentId, result.Result, result.Output);
-        return;
-      } 
-      // Result contains a set of subrequests
+        case FinalRequest finalRequest:
+        {
+          var result = requestProcessor_.GetResult(finalRequest, Array.Empty<string>());
+          StoreResult(request.Id, result.Result, result.Output);
+          return;
+        }
 
-      var subRequestsByDepsRq = result.SubRequests
-                                      .Cast<Request>()
-                                      .ToLookup(sr => sr.IsAggregationRequest);
+        case AggregationRequest aggregationRequest:
+        {
+          var result = requestProcessor_.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
+                                                                                         .Select(GetResultFromId)
+                                                                                         .ToList());
 
-      foreach (var subRequest in subRequestsByDepsRq[false])
-      {
-        SubmitNewRequest(request);
+          StoreResult(request.Id, result.Result, result.Output);
+          StoreResult(aggregationRequest.ParentId, result.Result, result.Output);
+          return;
+        }
+
+        case ComputeRequest computeRequest:
+        {
+          var result = requestProcessor_.GetResult(computeRequest, Array.Empty<string>());
+
+          var subRequestsByDepsRq = result.SubRequests
+                                          .ToLookup(sr => sr is AggregationRequest);
+
+
+          foreach (var leafRequest in subRequestsByDepsRq[true])
+            SubmitNewRequest(leafRequest);
+
+          var aggregationRequest = subRequestsByDepsRq[false].Cast<AggregationRequest>().Single();
+
+          foreach (var leafRequest in subRequestsByDepsRq[true])
+            WaitForResult(leafRequest);
+
+          ProcessRequest(aggregationRequest);
+          return;
+        }
+
+        default:
+          throw new ArgumentException($"{typeof(Request)} is not supported.");
+
       }
-
-      // TODO: Wait fot the tasks termination
-
-      // When the dependencies request have been processed, 
-      // current task will process the aggregation request.
-      ProcessRequest(subRequestsByDepsRq[true].Single());
     }
 
     private string GetResultFromId(string id)
@@ -76,7 +91,7 @@ namespace Htc.Mock.GridLib
       throw new NotImplementedException();
     }
 
-    private void StoreResult(string Id, string result, byte[] output)
+    private void StoreResult(string id, string result, byte[] output)
     {
       // TODO: IMPLEMENT_ME
       throw new NotImplementedException();
@@ -88,7 +103,7 @@ namespace Htc.Mock.GridLib
       throw new NotImplementedException();
     }
 
-    private void SubmitNewRequestWithDependencies(Request request, IList<string> dependencies)
+    private void WaitForResult(Request request)
     {
       // TODO: IMPLEMENT_ME
       throw new NotImplementedException();

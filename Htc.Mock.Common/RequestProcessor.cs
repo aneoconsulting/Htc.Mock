@@ -46,9 +46,12 @@ namespace Htc.Mock.Common
 
     [PublicAPI]
     public RequestResult GetResult(Request request, IList<string> inputs)
-      => ComputeResult(request, inputs).WithOutput(EmulateComputation(request));
+    {
+      Debug.Assert(inputs is not null);
+      return ComputeResult(request, inputs).WithOutput(EmulateComputation(request));
+    }
 
-    protected RequestResult ComputeResult(Request request, IList<string> inputs)
+    protected RequestResult ComputeResult(AggregationRequest request, IList<string> inputs)
     {
       Debug.Assert(inputs is not null);
 
@@ -57,81 +60,119 @@ namespace Htc.Mock.Common
           ArgumentException($"{nameof(request)} requires {request.ResultIdsRequired.Count} inputs, {inputs.Count} provided.",
                             nameof(inputs));
 
-      var leaf = true;
+      // use this computation to check that the good results were retrieved
+      var result = GetResultString(GetAggregateString(GetAggregationRes(inputs)));
 
-      if (request.CurrentDepth < request.Depth)
+      return new RequestResult(request.Id, result);
+    }
+
+
+    protected RequestResult ComputeResult(FinalRequest request, IList<string> inputs)
+    {
+      if (inputs.Any())
+        throw new
+          ArgumentException($"{nameof(request)} requires no inputs, {inputs.Count} provided.", nameof(inputs));
+
+      return new RequestResult(request.Id, GetResultString(request.Id));
+    }
+
+    protected RequestResult ComputeResult(ComputeRequest request, IList<string> inputs)
+    {
+      if (inputs.Any())
+        throw new
+          ArgumentException($"{nameof(request)} requires no inputs, {inputs.Count} provided.", nameof(inputs));
+
+      var targetNbRq        = Math.Max(2, (int)Math.Pow(request.NbSubrequests, 1.0 / request.Depth));
+      if (request.NbSubrequests - targetNbRq < 2)
+        targetNbRq = request.NbSubrequests;
+      var remainingRequests = request.NbSubrequests - targetNbRq;
+      var subRequests       = new List<Request>(targetNbRq);
+
+      for (var i = 0; i < targetNbRq - 2; ++i)
       {
-        if (request.CurrentDepth == 0 ||
-            !request.IsAggregationRequest && !runConfiguration_.IsLeaf(request.Id))
-        {
-          leaf = false;
-        }
+        var nbSubReq = remainingRequests switch
+                       {
+                         0 => 0,
+                         1 => throw new InvalidOperationException(),
+                         2 => 2,
+                         _ => 2 + (int) (request.Id.GetCryptoHashCode() % (remainingRequests -2)),
+                       };
+        if (remainingRequests - nbSubReq < 2)
+          nbSubReq = remainingRequests;
+
+        subRequests.Add(nbSubReq == 0
+                          ? new FinalRequest($"{request.Id}_{i}")
+                          : new ComputeRequest($"{request.Id}_{i}",
+                                               request.Depth - 1,
+                                               nbSubReq));
+        remainingRequests -= nbSubReq;
       }
 
-      if (leaf)
-      {
-        // ReSharper disable once ConvertIfStatementToReturnStatement
-        if (inputs.Count == 0)
-          return new RequestResult(request.Id, GetResultString(request.Id));
+      subRequests.Add(remainingRequests == 0
+                        ? new FinalRequest($"{request.Id}_{targetNbRq - 2}")
+                        : new ComputeRequest($"{request.Id}_{targetNbRq - 2}",
+                                             request.Depth - 1,
+                                             remainingRequests));
 
-        // use this computation to check that the good results were retrieved
-        var result = GetResultString(GetAggregateString(GetAggregationRes(inputs)));
-
-        
-        return new RequestResult(request.Id, result);
-      }
-
-      var nbRq = request.Depth == 1 && request.CurrentDepth == 0
-                   ? runConfiguration_.TotalNbSubTasks
-                   : Math.Max(1, runConfiguration_.GetNbSubtasks(request.Id) - 1);
-      var subRequests =
-        Enumerable.Range(0, nbRq)
-                  .Select(i => new Request($"{request.Id}_{i}",
-                                                 runConfiguration_.GetTaskDurationMs($"{request.Id}_{i}"),
-                                                 runConfiguration_.Memory, runConfiguration_.Data,
-                                                 request.Depth, request.CurrentDepth + 1))
-                  .OrderBy(rq => rq.Id)
-                  .ToList();
       var subRequestIds = subRequests.Select(sr => sr.Id).ToList();
+
+      Debug.Assert(1 +
+                   subRequests.Count +
+                   subRequests.Where(r => r is ComputeRequest)
+                              .Cast<ComputeRequest>()
+                              .Sum(cr => cr.NbSubrequests) ==
+                   request.NbSubrequests);
 
       var aggregateString = GetAggregateString(GetAggregationRes(subRequestIds, GetResultString));
 
       var aggregationRequest =
-        new Request(aggregateString,
-                    runConfiguration_.GetTaskDurationMs(aggregateString),
-                    runConfiguration_.Memory, runConfiguration_.Data, subRequestIds, request.Id,
-                    request.Depth, request.CurrentDepth + 1);
+        new AggregationRequest(aggregateString,
+                               request.Id,
+                               request.Depth-1,
+                               subRequestIds);
       subRequests.Add(aggregationRequest);
       return new RequestResult(request.Id, subRequests);
+
+    }
+
+    protected RequestResult ComputeResult(Request request, IList<string> inputs)
+    {
+      return request switch
+             {
+               AggregationRequest aggregationRequest => ComputeResult(aggregationRequest, inputs),
+               ComputeRequest computeRequest         => ComputeResult(computeRequest, inputs),
+               FinalRequest finalRequest             => ComputeResult(finalRequest, inputs),
+               _                                     => throw new ArgumentException($"{typeof(Request)} request cannot be handled.")
+             };
     }
 
     public static string GetResultString(string taskId) => $"{taskId}_result";
 
-    public static int GetAggregationRes(IEnumerable<string> ids, Func<string, string> resultSelector) 
+    public static uint GetAggregationRes(IEnumerable<string> ids, Func<string, string> resultSelector) 
       => GetAggregationRes(ids.Select(resultSelector));
 
-    public static int GetAggregationRes(IEnumerable<string> results) => results.GetCryptoHashCode();
+    public static uint GetAggregationRes(IEnumerable<string> results) => results.GetCryptoHashCode();
 
-    public static string GetAggregateString(int res) => $"Aggregate_{res}";
+    public static string GetAggregateString(uint res) => $"Aggregate_{res}";
 
     private byte[] EmulateComputation(Request request)
     {
-      var t = System.Threading.Tasks.Task.Delay(fastCompute_?0:request.DurationMs);
+      var t = System.Threading.Tasks.Task.Delay(fastCompute_?0: runConfiguration_.GetTaskDurationMs(request.Id));
 
-      var m = useLowMem_ ? new byte[0, 0] : new byte[request.MemoryUsageKb, 1024];
+      var m = useLowMem_ ? new byte[0, 0] : new byte[runConfiguration_.Memory, 1024];
       // Write all bytes to ensure that the memory is really allocated
       for (var i = 0; i < m.GetLength(0); ++i)
       {
         for (var j = 0; j < m.GetLength(1) ; ++j)
         {
-          m[i, j] = (byte) (request.MemoryUsageKb * j - 2019 * i);
+          m[i, j] = (byte)(m.GetLength(0) * j - 2019 * i);
         }
       }
 
-      var output = new byte[smallOutput_ ? 0 : request.OutputSize];
+      var output = new byte[smallOutput_ ? 0 : runConfiguration_.Data];
       for (var i = 0; i < output.Length; ++i)
       {
-        output[i] = (byte)((request.OutputSize & 2019) * i);
+        output[i] = (byte)((runConfiguration_.Data & 2019) * i);
       }
 
       t.Wait();

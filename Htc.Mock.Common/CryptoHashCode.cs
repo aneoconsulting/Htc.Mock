@@ -21,19 +21,22 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
 
 using JetBrains.Annotations;
 
 namespace Htc.Mock.Common
 {
-  internal static class StringExt
+  public static class CryptoHashCode
   {
     private static readonly uint[] ChecksumTable;
 
     private const uint Polynomial = 0xEDB88320;
 
-    static StringExt()
+    static CryptoHashCode()
     {
       ChecksumTable = new uint[0x100];
 
@@ -46,44 +49,29 @@ namespace Htc.Mock.Common
       }
     }
 
-    private static int GetCryptoHashCode(this Stream stream)
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+    private static uint GetCryptoHashCodeInternals(this string input, uint hash = uint.MaxValue)
     {
-      var result = 0xFFFFFFFF;
+      var inputBytes = MemoryMarshal.AsBytes(input.AsSpan());
 
-      int current;
-      while ((current = stream.ReadByte()) != -1)
-        result = ChecksumTable[(result & 0xFF) ^ (byte) current] ^ (result >> 8);
-
-      var hash = BitConverter.GetBytes(~result);
-      Array.Reverse(hash);
-      return BitConverter.ToInt32(hash);
-    }
-
-    [PublicAPI]
-    public static int GetCryptoHashCode(this byte[] data)
-    {
-      using var stream = new MemoryStream(data);
-      return GetCryptoHashCode(stream);
-    }
-
-    [PublicAPI]
-    public static int GetCryptoHashCode(this string input) => Encoding.ASCII.GetBytes(input).GetCryptoHashCode();
-
-    [PublicAPI]
-    public static int GetCryptoHashCode(this IEnumerable<string> enumerable)
-    {
-      using var stream = new MemoryStream();
-
-      var writer = new StreamWriter(stream);
-      foreach (var s in enumerable)
+      foreach (var b in inputBytes)
       {
-        writer.Write(s);
+        hash = ChecksumTable[(hash ^ b) & byte.MaxValue] ^ (hash >> 8);
       }
 
-      writer.Flush();
-      stream.Position = 0;
+      return hash;
+    }
 
-      return GetCryptoHashCode(stream);
+    [PublicAPI]
+    public static uint GetCryptoHashCode(this string input) => GetCryptoHashCodeInternals(input);
+
+    [PublicAPI]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static uint GetCryptoHashCode(this IEnumerable<string> enumerable)
+    {
+      return enumerable.Aggregate(uint.MaxValue, 
+                                  (current, s) => GetCryptoHashCodeInternals(s, current));
     }
   }
 }

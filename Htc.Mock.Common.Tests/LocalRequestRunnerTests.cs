@@ -19,54 +19,59 @@
 
 
 using NUnit.Framework;
-using Htc.Mock.Common;
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Htc.Mock.Common.Tests
 {
   [TestFixture]
   public class LocalRequestRunnerTests
   {
-    private const bool PrintSubtasks = false;
+    private static void ProcessRequest(RunConfiguration config,
+                                       out TimeSpan     totalCalculationTime,
+                                       out string       result,
+                                       out int          nbProcessedTask, 
+                                       out int          nbSubTasks)
+    {
+      var runner = new LocalRequestRunner(config);
+
+      var localNbProcessedTasks = 0;
+
+      var localTotalCalculationTime = 0L;
+
+      runner.StartRequestProcessingEvent += nestedRequest =>
+                                            {
+                                              Interlocked.Increment(ref localNbProcessedTasks);
+                                              var duration = config.GetTaskDurationMs(nestedRequest.Id);
+                                              Interlocked.Add(ref localTotalCalculationTime, duration);
+                                            };
+
+      var localNbSubTasks = 0;
+      runner.SpawningRequestEvent += localNbSubtasks => Interlocked.Add(ref localNbSubTasks , localNbSubtasks);
+
+      var request = config.DefaultHeadRequest();
+
+      result               = runner.ProcessRequest(request);
+      totalCalculationTime = TimeSpan.FromMilliseconds(localTotalCalculationTime);
+      nbProcessedTask      = localNbProcessedTasks;
+      nbSubTasks           = localNbSubTasks;
+
+      Console.WriteLine($"{nameof(nbProcessedTask)}={nbProcessedTask}");
+      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
+      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
+      Console.WriteLine($"{nameof(result)}={result}");
+
+      Assert.AreEqual(nbSubTasks + 1, nbProcessedTask);
+      Assert.AreEqual(config.TotalNbSubTasks, nbSubTasks);
+    }
 
     [Test]
     public void ProcessRequestMinimalTest()
     {
       var config = RunConfiguration.Minimal;
-      
-      var runner = new LocalRequestRunner(config);
 
-      var nbProcessedTasks     = 0;
-      var totalCalculationTime = new TimeSpan();
-
-      runner.StartRequestProcessingEvent += nestedRequest =>
-                                            {
-                                              nbProcessedTasks++;
-                                              totalCalculationTime += new TimeSpan(nestedRequest.DurationMs * 10000);
-                                            };
-
-      var nbSubTasks = 0;
-      runner.SpawningRequestEvent += (localNbSubtasks, depth) =>
-                                     {
-                                       nbSubTasks += localNbSubtasks;
-                                       if (PrintSubtasks)
-                                         Console.WriteLine($"{nameof(localNbSubtasks)}={localNbSubtasks} ({nameof(depth)}={depth})");
-                                     };
-
-      var request = config.DefaultHeadRequest();
-
-      var result = runner.ProcessRequest(request);
-
-      Console.WriteLine($"{nameof(nbProcessedTasks)}={nbProcessedTasks}");
-      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
-      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
-      Console.WriteLine($"{nameof(result)}={result}s");
+      ProcessRequest(config, out var totalCalculationTime, out var result, out var nbProcessedTask, out var nbSubTasks);
 
       Assert.AreEqual("HeadId_result", result);
     }
@@ -75,174 +80,55 @@ namespace Htc.Mock.Common.Tests
     public void ProcessRequestXSmallTest()
     {
       var config = RunConfiguration.XSmall;
-      
-      var runner = new LocalRequestRunner(config);
 
-      var nbProcessedTasks     = 0;
-      var totalCalculationTime = new TimeSpan();
+      ProcessRequest(config, out var totalCalculationTime, out var result, out var nbProcessedTask, out var nbSubTasks);
 
-      runner.StartRequestProcessingEvent += nestedRequest =>
-                                            {
-                                              nbProcessedTasks++;
-                                              totalCalculationTime += new TimeSpan(nestedRequest.DurationMs * 10000);
-                                            };
-
-      var nbSubTasks = 0;
-      runner.SpawningRequestEvent += (localNbSubtasks, depth) =>
-                                     {
-                                       nbSubTasks += localNbSubtasks;
-                                       if (PrintSubtasks)
-                                         Console.WriteLine($"{nameof(localNbSubtasks)}={localNbSubtasks} ({nameof(depth)}={depth})");
-                                     };
-
-      var request = config.DefaultHeadRequest();
-
-      var result = runner.ProcessRequest(request);
-
-      Console.WriteLine($"{nameof(nbProcessedTasks)}={nbProcessedTasks}");
-      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
-      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
-      Console.WriteLine($"{nameof(result)}={result}s");
+      Assert.AreEqual("Aggregate_1871498793_result", result);
+      Assert.AreEqual(TimeSpan.Parse("00:04:16.8940000"), totalCalculationTime);
     }
 
     [Test]
     public void ProcessRequestSmallTest()
     {
       var config = RunConfiguration.Small;
-      
-      var runner = new LocalRequestRunner(config);
 
-      var nbProcessedTasks     = 0;
-      var totalCalculationTime = new TimeSpan();
+      ProcessRequest(config, out var totalCalculationTime, out var result, out var nbProcessedTask, out var nbSubTasks);
 
-      var startRequestProcessingEventLock = new object();
-      runner.StartRequestProcessingEvent += nestedRequest =>
-                                            {
-                                              Interlocked.Increment(ref nbProcessedTasks);
-                                              lock (startRequestProcessingEventLock)
-                                              {
-                                                totalCalculationTime += new TimeSpan(nestedRequest.DurationMs * 10000);
-                                              }
-                                            };
-
-      var nbSubTasks               = 0;
-      runner.SpawningRequestEvent += (localNbSubtasks, depth) =>
-                                     {
-                                       Interlocked.Add(ref nbSubTasks, localNbSubtasks);
-                                       if (PrintSubtasks)
-                                         Console.WriteLine($"{nameof(localNbSubtasks)}={localNbSubtasks} ({nameof(depth)}={depth})");
-                                     };
-
-      var request = config.DefaultHeadRequest();
-
-      var result = runner.ProcessRequest(request);
-
-      Console.WriteLine($"{nameof(nbProcessedTasks)}={nbProcessedTasks}");
-      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
-      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
-      Console.WriteLine($"{nameof(result)}={result}s");
+      Assert.AreEqual("Aggregate_2608871805_result", result);
+      Assert.AreEqual(TimeSpan.Parse("00:09:48.9270000"), totalCalculationTime);
     }
 
     [Test]
     public void ProcessRequestMediumTest()
     {
       var config = RunConfiguration.Medium;
-      
-      var runner = new LocalRequestRunner(config);
 
-      var nbProcessedTasks     = 0;
-      var totalCalculationTime = new TimeSpan();
+      ProcessRequest(config, out var totalCalculationTime, out var result, out var nbProcessedTask, out var nbSubTasks);
 
-      runner.StartRequestProcessingEvent += nestedRequest =>
-                                            {
-                                              nbProcessedTasks++;
-                                              totalCalculationTime += new TimeSpan(nestedRequest.DurationMs * 10000);
-                                            };
-
-      var nbSubTasks = 0;
-      runner.SpawningRequestEvent += (localNbSubtasks, depth) =>
-                                     {
-                                       nbSubTasks += localNbSubtasks;
-                                       if (PrintSubtasks)
-                                         Console.WriteLine($"{nameof(localNbSubtasks)}={localNbSubtasks} ({nameof(depth)}={depth})");
-                                     };
-
-      var request = config.DefaultHeadRequest();
-
-      var result = runner.ProcessRequest(request);
-
-      Console.WriteLine($"{nameof(nbProcessedTasks)}={nbProcessedTasks}");
-      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
-      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
-      Console.WriteLine($"{nameof(result)}={result}s");
+      Assert.AreEqual("Aggregate_3926158863_result", result);
+      Assert.AreEqual(TimeSpan.Parse("01:00:33.8280000"), totalCalculationTime);
     }
 
     [Test]
     public void ProcessRequestLargeTest()
     {
       var config = RunConfiguration.Large;
-      
-      var runner = new LocalRequestRunner(config);
 
-      var nbProcessedTasks           = 0;
-      var totalCalculationTime = new TimeSpan();
+      ProcessRequest(config, out var totalCalculationTime, out var result, out var nbProcessedTask, out var nbSubTasks);
 
-      runner.StartRequestProcessingEvent += nestedRequest =>
-                                      {
-                                        nbProcessedTasks++;
-                                        totalCalculationTime += new TimeSpan(nestedRequest.DurationMs * 10000);
-                                      };
-
-      var nbSubTasks = 0;
-      runner.SpawningRequestEvent += (localNbSubtasks, depth) =>
-                                     {
-                                       nbSubTasks += localNbSubtasks;
-                                       if (PrintSubtasks)
-                                         Console.WriteLine($"{nameof(localNbSubtasks)}={localNbSubtasks} ({nameof(depth)}={depth})");
-                                     };
-
-      var request = config.DefaultHeadRequest();
-
-      var result = runner.ProcessRequest(request);
-
-      Console.WriteLine($"{nameof(nbProcessedTasks)}={nbProcessedTasks}");
-      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
-      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
-      Console.WriteLine($"{nameof(result)}={result}s");
+      Assert.AreEqual("Aggregate_3409642680_result", result);
+      Assert.AreEqual(TimeSpan.Parse("1.11:45:33.0270000"), totalCalculationTime);
     }
 
     [Test]
     public void ProcessRequestXLargeTest()
     {
       var config = RunConfiguration.XLarge;
-      
-      var runner = new LocalRequestRunner(config);
 
-      var nbProcessedTasks     = 0;
-      var totalCalculationTime = new TimeSpan();
+      ProcessRequest(config, out var totalCalculationTime, out var result, out var nbProcessedTask, out var nbSubTasks);
 
-      runner.StartRequestProcessingEvent += nestedRequest =>
-                                            {
-                                              nbProcessedTasks++;
-                                              totalCalculationTime += new TimeSpan(nestedRequest.DurationMs * 10000);
-                                            };
-
-      var nbSubTasks = 0;
-      runner.SpawningRequestEvent += (localNbSubtasks, depth) =>
-                                     {
-                                       nbSubTasks += localNbSubtasks;
-                                       if (PrintSubtasks)
-                                         Console.WriteLine($"{nameof(localNbSubtasks)}={localNbSubtasks} ({nameof(depth)}={depth})");
-                                     };
-
-      var request = config.DefaultHeadRequest();
-
-      var result = runner.ProcessRequest(request);
-
-      Console.WriteLine($"{nameof(nbProcessedTasks)}={nbProcessedTasks}");
-      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
-      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
-      Console.WriteLine($"{nameof(result)}={result}s");
+      Assert.AreEqual("Aggregate_1864571827_result", result);
+      Assert.AreEqual(TimeSpan.Parse("999.14:56:01.9850000"), totalCalculationTime);
     }
   }
 }
