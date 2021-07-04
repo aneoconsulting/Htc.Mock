@@ -1,4 +1,4 @@
-﻿/* Request.cs is part of the Htc.Mock.Common solution.
+﻿/* FinalRequest.cs is part of the Htc.Mock solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -18,25 +18,27 @@
 */ 
 
 
-using System;
-using System.Diagnostics;
-
 using JetBrains.Annotations;
 
-namespace Htc.Mock.Common
+using ProtoBuf;
+
+namespace Htc.Mock.Core
 {
   [PublicAPI]
-  [Serializable]
-  public class Request
+  [ProtoContract]
+  public class FinalRequest : Request
   {
-    protected Request(string id)
-    {
-      Debug.Assert(!string.IsNullOrEmpty(id));
+    private const string HeadId = "HeadId";
+    
 
-      Id = id;
+    public FinalRequest()
+      : this(HeadId)
+    {
     }
 
-    [NotNull]
-    public string Id { get; }
+    public FinalRequest(string id)
+      : base(id)
+    {
+    }
   }
 }

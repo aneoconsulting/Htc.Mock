@@ -1,4 +1,4 @@
-﻿/* RunConfiguration.cs is part of the Htc.Mock.Common solution.
+﻿/* RunConfiguration.cs is part of the Htc.Mock solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -22,10 +22,13 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 
+using Htc.Mock.Utils;
+
 using JetBrains.Annotations;
 
+using ProtoBuf;
 
-namespace Htc.Mock.Common
+namespace Htc.Mock.Core
 {
   public static class RunConfigurationExt
   {
@@ -35,14 +38,15 @@ namespace Htc.Mock.Common
            : new ComputeRequest(configuration.SubTasksLevels, configuration.TotalNbSubTasks);
   }
 
-  [Serializable]
+  [PublicAPI]
+  [ProtoContract(SkipConstructor = true)]
   public class RunConfiguration
   {
     private const int NbSamples           = 100000;
 
+    [ProtoMember(1)]
     private readonly int[] durationSamples_;
-
-    private readonly int seed_;
+    
 
     public RunConfiguration(TimeSpan totalCalculationTime,
                             int      totalNbSubTasks,
@@ -66,16 +70,16 @@ namespace Htc.Mock.Common
       MinDurationMs = minDurationMs == -1 ? (int) (AvgDurationMs / 3) : minDurationMs;
       MaxDurationMs = maxDurationMs == -1 ? (int) (AvgDurationMs * 30) : maxDurationMs;
 
-      seed_ = (int) TotalCalculationTime.Ticks +
-              2 * TotalNbSubTasks +
-              3 * Data +
-              4 * Memory +
-              5 * SubTasksLevels +
-              6 * MinDurationMs +
-              7 * MaxDurationMs +
-              8 * NbSamples;
+      var seed = (int) TotalCalculationTime.Ticks +
+                  2 * TotalNbSubTasks +
+                  3 * Data +
+                  4 * Memory +
+                  5 * SubTasksLevels +
+                  6 * MinDurationMs +
+                  7 * MaxDurationMs +
+                  8 * NbSamples;
 
-      var ran = new Random(seed_);
+      var ran = new Random(seed);
 
       durationSamples_ = Enumerable.Range(0, NbSamples)
                                    .Select(_ => (int) Beta.Sample(ran, MinDurationMs, AvgDurationMs, MaxDurationMs))
@@ -89,23 +93,31 @@ namespace Htc.Mock.Common
       Console.WriteLine($"{nameof(AvgDurationMs)}={AvgDurationMs}");
       Console.WriteLine($"{nameof(MinDurationMs)}={MinDurationMs}");
       Console.WriteLine($"{nameof(MaxDurationMs)}={MaxDurationMs}");
-      Console.WriteLine($"{nameof(seed_)}={seed_}");
+      Console.WriteLine($"{nameof(seed)}={seed}");
     }
 
+    [ProtoMember(2)]
     public TimeSpan TotalCalculationTime { get; }
 
+    [ProtoMember(3)]
     public int TotalNbSubTasks { get; }
 
+    [ProtoMember(4)]
     public int Data { get; }
 
+    [ProtoMember(5)]
     public int Memory { get; }
 
+    [ProtoMember(6)]
     public int SubTasksLevels { get; }
 
+    [ProtoMember(7)]
     public int MinDurationMs { get; }
 
+    [ProtoMember(8)]
     public int MaxDurationMs { get; }
 
+    [ProtoMember(9)]
     public double AvgDurationMs { get; }
     
     public int GetTaskDurationMs(string taskId)

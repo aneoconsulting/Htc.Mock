@@ -1,4 +1,4 @@
-﻿/* LocalRequestRunner.cs is part of the Htc.Mock.Common solution.
+﻿/* LocalRequestRunner.cs is part of the Htc.Mock solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -21,15 +21,18 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+
+using Htc.Mock.Core;
 
 using JetBrains.Annotations;
 
-namespace Htc.Mock.Common
+namespace Htc.Mock.RequestRunners
 {
 
   [PublicAPI]
-  public class LocalRequestRunner
+  public class LocalRequestRunner : IRequestRunner
   {
 
     private readonly RequestProcessor requestProcessor_;
@@ -40,6 +43,8 @@ namespace Htc.Mock.Common
 
     public event Action<int> SpawningRequestEvent;
 
+    public bool ParallelRun { get; set; } = true;
+
     /// <summary>
     /// Builds a <c>DistributedRequestProcessor</c>
     /// </summary>
@@ -49,7 +54,7 @@ namespace Htc.Mock.Common
       => requestProcessor_ = new RequestProcessor(true, true, true, runConfiguration);
 
 
-    public string ProcessRequest(Request request, bool parallelRun = true)
+    public string ProcessRequest(Request request, bool parallelRun)
     {
       switch (request)
       {
@@ -96,19 +101,19 @@ namespace Htc.Mock.Common
 
           if (parallelRun)
           {
-            Parallel.ForEach(subRequestsByDepsRq[true], leafRequest => ProcessRequest(leafRequest));
+            Parallel.ForEach(subRequestsByDepsRq[true], leafRequest => ProcessRequest(leafRequest, request.Id));
           }
           else
           {
             foreach (var leafRequest in subRequestsByDepsRq[true])
-              ProcessRequest(leafRequest);
+              ProcessRequest(leafRequest, ParallelRun);
           }
 
           var aggregationRequest = subRequestsByDepsRq[false].Single();
 
           SpawningRequestEvent?.Invoke(1);
 
-          ProcessRequest(aggregationRequest);
+          ProcessRequest(aggregationRequest, false);
 
           return results_[request.Id];
         }
@@ -118,5 +123,8 @@ namespace Htc.Mock.Common
 
       }
     }
+
+    /// <inheritdoc />
+    public byte[] ProcessRequest(Request request, string taskId) => Encoding.ASCII.GetBytes(ProcessRequest(request, ParallelRun));
   }
 }

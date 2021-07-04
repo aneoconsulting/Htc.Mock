@@ -1,4 +1,4 @@
-﻿/* Program.cs is part of the Htc.Mock.GridClient solution.
+﻿/* DataClient.cs is part of the Htc.Mock.LocalGridSample solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -18,31 +18,20 @@
 */ 
 
 
-using System;
+using System.Collections.Concurrent;
 
-using Htc.Mock.Common;
-
-namespace Htc.Mock.GridClient
+namespace Htc.Mock.LocalGridSample
 {
-  class Program
+  class DataClient : IDataClient
   {
-    static void Main()
+    private readonly ConcurrentDictionary<string, byte[]> dataStore_ = new();
+    /// <inheritdoc />
+    public byte[] GetData(string key) => dataStore_[key];
+
+    /// <inheritdoc />
+    public void StoreData(string key, byte[] data)
     {
-      var runConfiguration =
-        new RunConfiguration(new TimeSpan(1, 0, 0),
-                                   1000,
-                                   1,
-                                   1,
-                                   3);
-
-      var request = runConfiguration.DefaultHeadRequest();
-
-      // TODO: create session
-
-      // TODO: Submit request
-
-      // TODO: wait for result
-
+      dataStore_[key] = data;
     }
   }
 }

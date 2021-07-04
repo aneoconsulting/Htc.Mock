@@ -1,4 +1,4 @@
-﻿/* RequestProcessor.cs is part of the Htc.Mock.Common solution.
+﻿/* RequestProcessor.cs is part of the Htc.Mock solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -23,9 +23,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using Htc.Mock.Utils;
+
 using JetBrains.Annotations;
 
-namespace Htc.Mock.Common
+namespace Htc.Mock.Core
 {
   [PublicAPI]
   public class RequestProcessor
@@ -51,7 +53,7 @@ namespace Htc.Mock.Common
       return ComputeResult(request, inputs).WithOutput(EmulateComputation(request));
     }
 
-    protected RequestResult ComputeResult(AggregationRequest request, IList<string> inputs)
+    protected static RequestResult ComputeResult(AggregationRequest request, IList<string> inputs)
     {
       Debug.Assert(inputs is not null);
 
@@ -67,7 +69,7 @@ namespace Htc.Mock.Common
     }
 
 
-    protected RequestResult ComputeResult(FinalRequest request, IList<string> inputs)
+    protected static RequestResult ComputeResult(FinalRequest request, IList<string> inputs)
     {
       if (inputs.Any())
         throw new
@@ -76,7 +78,7 @@ namespace Htc.Mock.Common
       return new RequestResult(request.Id, GetResultString(request.Id));
     }
 
-    protected RequestResult ComputeResult(ComputeRequest request, IList<string> inputs)
+    protected static RequestResult ComputeResult(ComputeRequest request, IList<string> inputs)
     {
       if (inputs.Any())
         throw new
@@ -135,7 +137,7 @@ namespace Htc.Mock.Common
 
     }
 
-    protected RequestResult ComputeResult(Request request, IList<string> inputs)
+    protected static RequestResult ComputeResult(Request request, IList<string> inputs)
     {
       return request switch
              {

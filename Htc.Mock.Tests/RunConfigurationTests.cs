@@ -1,4 +1,4 @@
-﻿/* RunConfigurationTests.cs is part of the Htc.Mock.Common.Tests solution.
+﻿/* RunConfigurationTests.cs is part of the Htc.Mock.Tests solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -21,9 +21,11 @@
 using System;
 using System.Linq;
 
+using Htc.Mock.Utils;
+
 using NUnit.Framework;
 
-namespace Htc.Mock.Common.Tests
+namespace Htc.Mock.Tests
 {
   [TestFixture]
   public class RunConfigurationTests

@@ -1,4 +1,4 @@
-﻿/* RequestResult.cs is part of the Htc.Mock.Common solution.
+﻿/* RequestResult.cs is part of the Htc.Mock solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -25,7 +25,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
-namespace Htc.Mock.Common
+namespace Htc.Mock.Core
 {
   [Serializable]
   public class RequestResult

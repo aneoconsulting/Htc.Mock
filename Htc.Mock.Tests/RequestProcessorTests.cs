@@ -1,4 +1,4 @@
-﻿/* RequestProcessorTests.cs is part of the Htc.Mock.Common.Tests solution.
+﻿/* RequestProcessorTests.cs is part of the Htc.Mock.Tests solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -20,10 +20,12 @@
 
 using System;
 
-using NUnit.Framework;
-using Htc.Mock.Common;
+using Htc.Mock.Core;
+using Htc.Mock.Utils;
 
-namespace Htc.Mock.Common.Tests
+using NUnit.Framework;
+
+namespace Htc.Mock.Tests
 {
   [TestFixture]
   public class RequestProcessorTests

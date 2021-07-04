@@ -1,4 +1,4 @@
-﻿/* StringExt.cs is part of the Htc.Mock.Common solution.
+﻿/* CryptoHashCode.cs is part of the Htc.Mock solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -20,15 +20,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 
 using JetBrains.Annotations;
 
-namespace Htc.Mock.Common
+namespace Htc.Mock.Utils
 {
   public static class CryptoHashCode
   {

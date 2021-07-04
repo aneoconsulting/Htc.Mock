@@ -1,4 +1,4 @@
-﻿/* Beta.cs is part of the Htc.Mock.Common solution.
+﻿/* Beta.cs is part of the Htc.Mock solution.
     
    Copyright (c) 2021-2021 ANEO. 
      W. Kirschenmann (https://github.com/wkirschenmann)
@@ -21,7 +21,7 @@
 using System;
 using System.Diagnostics;
 
-namespace Htc.Mock.Common
+namespace Htc.Mock.Utils
 {
   public static class Beta
   {
