@@ -42,7 +42,7 @@ namespace Htc.Mock.LocalGridSample
 
     public GridClient(IDataClient dataClient)
       => gridWorker_ = new(new DelegateRequestRunnerFactory((runConfiguration, session)
-                                                              => new DistributedRequestRunner(dataClient,
+                                                              => new DistributedRequestRunnerWithAggregation(dataClient,
                                                                                               this,
                                                                                               runConfiguration,
                                                                                               session,
@@ -84,11 +84,6 @@ namespace Htc.Mock.LocalGridSample
 
       statusStore_[taskId] = Task.Factory.StartNew(() => resultStore_[taskId] = gridWorker_.Execute(session, taskId, payload),
                                                    cts.Token);
-
-      //var tcs = new TaskCompletionSource();
-      //statusStore_[taskId] = tcs.Task;
-      //resultStore_[taskId] = gridWorker_.Execute(session, taskId, payload);
-      //tcs.SetResult();
 
       return taskId;
     }

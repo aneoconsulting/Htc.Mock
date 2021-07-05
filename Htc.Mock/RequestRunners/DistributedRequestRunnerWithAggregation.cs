@@ -99,6 +99,7 @@ namespace Htc.Mock.RequestRunners
                                           .ToLookup(sr => sr is not AggregationRequest);
 
           var subtaskIds = subRequestsByDepsRq[true]
+                          .AsParallel()
                           .Select(leafRequest
                                     => gridClient_.SubmitTask(session_,
                                                                  DataAdapter.BuildPayload(runConfiguration_, leafRequest)))
@@ -107,7 +108,7 @@ namespace Htc.Mock.RequestRunners
           // We split the waiting in two to ease the scheduling by the parallel runtime
           foreach (var subtaskId in subtaskIds)
           {
-            gridClient_.WaitCompletion(taskId);
+            gridClient_.WaitCompletion(subtaskId);
             gridClient_.GetResult(subtaskId);
           }
 
