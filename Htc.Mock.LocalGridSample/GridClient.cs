@@ -36,19 +36,19 @@ namespace Htc.Mock.LocalGridSample
     private          int                                                   taskCount_;
     private          int                                                   sessionCount_;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> cancelSources_ = new();
-    private readonly ConcurrentDictionary<string, List<string>>            subtasksLists_ = new();
-    private readonly ConcurrentDictionary<string, List<string>>            parentLists_   = new();
+    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   subtasksLists_ = new();
+    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists_   = new();
 
 
     public GridClient(IDataClient dataClient)
       => gridWorker_ = new(new DelegateRequestRunnerFactory((runConfiguration, session)
-                                                              => new DistributedRequestRunnerWithAggregation(dataClient,
+                                                              => new DistributedRequestRunner(dataClient,
                                                                                               this,
                                                                                               runConfiguration,
                                                                                               session,
-                                                                                              true,
-                                                                                              true,
-                                                                                              true)));
+                                                                                              fastCompute: true,
+                                                                                              useLowMem: true,
+                                                                                              smallOutput: true)));
 
     /// <inheritdoc />
     public byte[] GetResult(string id) => resultStore_[id];
@@ -77,16 +77,18 @@ namespace Htc.Mock.LocalGridSample
 
       var taskId = $"{session}_{Interlocked.Increment(ref taskCount_)}";
       cancelSources_[taskId] = new CancellationTokenSource();
+      parentLists_[taskId]   = new ConcurrentBag<string>();
+      subtasksLists_[taskId] = new ConcurrentBag<string>();
 
       var cts = CancellationTokenSource.CreateLinkedTokenSource(cancelSources_[taskId].Token, cancelSources_[session].Token);
 
       statusStore_[taskId] = Task.Factory.StartNew(() => resultStore_[taskId] = gridWorker_.Execute(session, taskId, payload),
-                                                   cts.Token,
-                                                   TaskCreationOptions.AttachedToParent | TaskCreationOptions.PreferFairness,
-                                                   TaskScheduler.Current);
+                                                   cts.Token);
 
-      parentLists_[taskId]   = new List<string>();
-      subtasksLists_[taskId] = new List<string>();
+      //var tcs = new TaskCompletionSource();
+      //statusStore_[taskId] = tcs.Task;
+      //resultStore_[taskId] = gridWorker_.Execute(session, taskId, payload);
+      //tcs.SetResult();
 
       return taskId;
     }

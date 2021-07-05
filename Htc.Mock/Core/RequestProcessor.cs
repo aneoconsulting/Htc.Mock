@@ -50,7 +50,8 @@ namespace Htc.Mock.Core
     public RequestResult GetResult(Request request, IList<string> inputs)
     {
       Debug.Assert(inputs is not null);
-      return ComputeResult(request, inputs).WithOutput(EmulateComputation(request));
+      var output = EmulateComputation(request);
+      return ComputeResult(request, inputs).WithOutput(output);
     }
 
     protected static RequestResult ComputeResult(AggregationRequest request, IList<string> inputs)

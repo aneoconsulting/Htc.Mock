@@ -55,9 +55,9 @@ namespace Htc.Mock.RequestRunners
                                                    IGridClient      gridClient,
                                                    RunConfiguration runConfiguration,
                                                    string           session,
-                                                   bool             fastCompute      = false,
-                                                   bool             useLowMem        = false,
-                                                   bool             smallOutput      = false)
+                                                   bool             fastCompute = true,
+                                                   bool             useLowMem   = true,
+                                                   bool             smallOutput = true)
     {
       runConfiguration_ = runConfiguration;
       requestProcessor_ = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration);
@@ -99,9 +99,8 @@ namespace Htc.Mock.RequestRunners
                                           .ToLookup(sr => sr is not AggregationRequest);
 
           var subtaskIds = subRequestsByDepsRq[true]
-                          .AsParallel()
                           .Select(leafRequest
-                                    => gridClient_.SubmitSubtask(session_, taskId,
+                                    => gridClient_.SubmitTask(session_,
                                                                  DataAdapter.BuildPayload(runConfiguration_, leafRequest)))
                           .ToList();
 
@@ -109,10 +108,6 @@ namespace Htc.Mock.RequestRunners
           foreach (var subtaskId in subtaskIds)
           {
             gridClient_.WaitCompletion(taskId);
-          }
-          foreach (var subtaskId in subtaskIds)
-          {
-            gridClient_.WaitSubtasksCompletion(taskId);
             gridClient_.GetResult(subtaskId);
           }
 
