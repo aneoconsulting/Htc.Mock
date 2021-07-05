@@ -115,10 +115,17 @@ namespace Htc.Mock.RequestRunners
                                                              .Single();
 
           if (waitDependencies_)
-            gridClient_.WaitDependenciesAndSubmitSubtask(session_, taskId, DataAdapter.BuildPayload(runConfiguration_, aggregationRequest),
-                                                      taskIds);
+            gridClient_.WaitDependenciesAndSubmitSubtask(session_,
+                                                         taskId,
+                                                         DataAdapter.BuildPayload(runConfiguration_,
+                                                                                  aggregationRequest),
+                                                         taskIds);
           else
-            gridClient_.SubmitSubtaskWithDependencies(session_, taskId, DataAdapter.BuildPayload(runConfiguration_, aggregationRequest), taskIds);
+            gridClient_.SubmitSubtaskWithDependencies(session_,
+                                                      taskId,
+                                                      DataAdapter.BuildPayload(runConfiguration_,
+                                                                               aggregationRequest),
+                                                      taskIds);
 
           return result.Output;
         }
