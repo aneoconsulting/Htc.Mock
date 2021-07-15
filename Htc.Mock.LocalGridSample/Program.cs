@@ -15,8 +15,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-*/ 
+*/
 
+
+using System;
+
+using Htc.Mock.Core;
 
 using JetBrains.Annotations;
 
@@ -27,12 +31,13 @@ namespace Htc.Mock.LocalGridSample
   {
     public static void Main()
     {
-      // To provide a new client, on need to provide a dataClient and a gridClient
+      // To provide a new client, one need to provide a dataClient and a gridClient
       var dataClient = new DataClient();
       var gridClient = new GridClient(dataClient);
 
       // Code below is standard.
-      var client     = new Client(gridClient, dataClient);
+      var client = new Client(gridClient, dataClient);
+      
       client.Start();
     }
   }
