@@ -35,15 +35,13 @@ namespace Htc.Mock
 
     public Client(IGridClient gridClient, IDataClient dataClient)
     {
-      gridClient_ = gridClient;
-      dataClient_ = dataClient;
+      gridClient_       = gridClient;
+      dataClient_       = dataClient;
     }
 
     [PublicAPI]
-    public void Start()
+    public void Start(RunConfiguration runConfiguration)
     {
-      var runConfiguration = RunConfiguration.Medium;
-
       var session = gridClient_.CreateSession();
 
       var request = runConfiguration.DefaultHeadRequest();
@@ -57,8 +55,14 @@ namespace Htc.Mock
 
       // the proper result is stored in the data cache
       var result = dataClient_.GetData(request.Id);
-      if (Encoding.ASCII.GetString(result) != "Aggregate_3926158863_result")
-        throw new InvalidOperationException($"Result of computation has a wrong value.");
+
+      Console.WriteLine($"Final result is {Encoding.ASCII.GetString(result)}");
+      Console.WriteLine($"If run with configuration = Medium, result should be Aggregate_3926158863_result");
     }
+
+
+    [PublicAPI]
+    public void Start() => Start(RunConfiguration.Medium);
   }
 }
+

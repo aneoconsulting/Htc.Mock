@@ -87,6 +87,8 @@ namespace Htc.Mock
 
     string CreateSession();
 
+    void OpenSession(string sessionId);
+
     void CancelSession(string session);
 
     void CancelTask(string taskId);

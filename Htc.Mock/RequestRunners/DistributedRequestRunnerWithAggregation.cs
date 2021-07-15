@@ -64,6 +64,8 @@ namespace Htc.Mock.RequestRunners
       dataClient_       = dataClient;
       gridClient_       = gridClient;
       session_          = session;
+
+      gridClient_.OpenSession(session_);
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
@@ -104,6 +106,7 @@ namespace Htc.Mock.RequestRunners
                                     => gridClient_.SubmitTask(session_,
                                                                  DataAdapter.BuildPayload(runConfiguration_, leafRequest)))
                           .ToList();
+
 
           // We split the waiting in two to ease the scheduling by the parallel runtime
           foreach (var subtaskId in subtaskIds)

@@ -70,6 +70,8 @@ namespace Htc.Mock.RequestRunners
       gridClient_       = gridClient;
       session_          = session;
       waitDependencies_ = waitDependencies;
+
+      gridClient_.OpenSession(session_);
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
