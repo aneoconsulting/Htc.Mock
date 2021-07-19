@@ -31,31 +31,31 @@ namespace Htc.Mock.Core
     private class PayloadBuilder
     {
       [ProtoMember(1)]
-      public RunConfiguration RunConfiguration { get; init; }
+      public RunConfiguration RunConfiguration { get; set; }
 
       [ProtoMember(2)]
-      public Request          Request          { get; init; }
+      public Request Request { get; set; }
     }
 
     public static byte[] BuildPayload(RunConfiguration runConfiguration, Request request)
     {
-      PayloadBuilder payloadBuilder = new() {Request = request, RunConfiguration = runConfiguration};
+      var payloadBuilder = new PayloadBuilder {Request = request, RunConfiguration = runConfiguration};
 
-      using var stream = new MemoryStream();
+      using (var stream = new MemoryStream())
+      {
+        Serializer.Serialize(stream, payloadBuilder);
 
-      Serializer.Serialize(stream, payloadBuilder);
+        stream.Position = 0;
 
-      stream.Position = 0;
-
-      return stream.ToArray();
+        return stream.ToArray();
+      }
     }
 
-    public static (RunConfiguration, Request) ReadPayload(byte[] payload)
+    public static Tuple<RunConfiguration, Request> ReadPayload(byte[] payload)
     {
       var payloadBuilder = Serializer.Deserialize<PayloadBuilder>(payload.AsSpan());
 
-      return (payloadBuilder.RunConfiguration, payloadBuilder.Request);
+      return Tuple.Create(payloadBuilder.RunConfiguration, payloadBuilder.Request);
     }
-
   }
 }

@@ -29,7 +29,7 @@ namespace Htc.Mock.Utils
     {
       Debug.Assert(min < avg);
       Debug.Assert(avg < max);
-      Debug.Assert(ran is not null);
+      Debug.Assert(ran != null);
 
       var width         = max - min;
       var normalizedAvg = (avg - min) / width;

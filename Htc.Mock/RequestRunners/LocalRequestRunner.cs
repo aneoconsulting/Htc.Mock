@@ -35,9 +35,9 @@ namespace Htc.Mock.RequestRunners
   public class LocalRequestRunner : IRequestRunner
   {
 
-    private readonly RequestProcessor requestProcessor_;
+    private readonly RequestProcessor requestProcessor;
 
-    private readonly ConcurrentDictionary<string, string> results_ = new();
+    private readonly ConcurrentDictionary<string, string> results = new ConcurrentDictionary<string, string>();
 
     public event Action<Request> StartRequestProcessingEvent;
 
@@ -51,7 +51,7 @@ namespace Htc.Mock.RequestRunners
     /// <param name="runConfiguration">Defines the properties of the current execution.
     /// It is assumed to be a session data.</param>
     public LocalRequestRunner(RunConfiguration runConfiguration)
-      => requestProcessor_ = new RequestProcessor(true, true, true, runConfiguration);
+      => requestProcessor = new RequestProcessor(true, true, true, runConfiguration);
 
 
     public string ProcessRequest(Request request, bool parallelRun)
@@ -61,9 +61,9 @@ namespace Htc.Mock.RequestRunners
         case FinalRequest finalRequest:
         {
           StartRequestProcessingEvent?.Invoke(request);
-          var result = requestProcessor_.GetResult(finalRequest, Array.Empty<string>());
+          var result = requestProcessor.GetResult(finalRequest, Array.Empty<string>());
 
-          if (!results_.TryAdd(request.Id, result.Result))
+          if (!results.TryAdd(request.Id, result.Result))
           {
             Console.WriteLine("Result was already written.");
           }
@@ -74,14 +74,14 @@ namespace Htc.Mock.RequestRunners
         case AggregationRequest aggregationRequest:
         {
           StartRequestProcessingEvent?.Invoke(request);
-          var result = requestProcessor_.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
-                                                                                         .Select(id => results_[id])
+          var result = requestProcessor.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
+                                                                                         .Select(id => results[id])
                                                                                          .ToList());
-          if (!results_.TryAdd(aggregationRequest.Id, result.Result))
+          if (!results.TryAdd(aggregationRequest.Id, result.Result))
           {
             Console.WriteLine("Result was already written.");
           }          
-          if (!results_.TryAdd(aggregationRequest.ParentId, result.Result))
+          if (!results.TryAdd(aggregationRequest.ParentId, result.Result))
           {
             Console.WriteLine("Result was already written.");
           }
@@ -92,10 +92,10 @@ namespace Htc.Mock.RequestRunners
         case ComputeRequest computeRequest:
         {
           StartRequestProcessingEvent?.Invoke(request);
-          var result = requestProcessor_.GetResult(computeRequest, Array.Empty<string>());
+          var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
 
           var subRequestsByDepsRq = result.SubRequests
-                                          .ToLookup(sr => sr is not AggregationRequest);
+                                          .ToLookup(sr => !( sr is AggregationRequest));
 
           SpawningRequestEvent?.Invoke(subRequestsByDepsRq[true].Count());
 
@@ -115,11 +115,11 @@ namespace Htc.Mock.RequestRunners
 
           ProcessRequest(aggregationRequest, false);
 
-          return results_[request.Id];
+          return results[request.Id];
         }
 
         default:
-          throw new ArgumentException($"{typeof(Request)} is not supported.");
+          throw new ArgumentException($"{typeof(Request)} != supported.");
 
       }
     }

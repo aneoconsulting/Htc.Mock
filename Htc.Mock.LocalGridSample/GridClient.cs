@@ -18,6 +18,7 @@
 */ 
 
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -89,6 +90,9 @@ namespace Htc.Mock.LocalGridSample
     }
 
     /// <inheritdoc />
+    public IEnumerable<string> SubmitTasks(string session, IEnumerable<byte[]> payloads) => payloads.Select(p=>SubmitTask(session, p));
+
+    /// <inheritdoc />
     public string SubmitSubtask(string session, string parentId, byte[] payload)
     {
       var taskId = SubmitTask(session, payload);
@@ -104,6 +108,9 @@ namespace Htc.Mock.LocalGridSample
     }
 
     /// <inheritdoc />
+    public IEnumerable<string> SubmitSubtask(string session, string parentId, IEnumerable<byte[]> payloads) => payloads.Select(p => SubmitSubtask(session, parentId, p));
+
+    /// <inheritdoc />
     public string SubmitTaskWithDependencies(string session, byte[] payload, IList<string> dependencies)
     {
       foreach (var dependency in dependencies)
@@ -115,6 +122,9 @@ namespace Htc.Mock.LocalGridSample
     }
 
     /// <inheritdoc />
+    public IEnumerable<string> SubmitTaskWithDependencies(string session, IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies) => payloadWithDependencies.Select(p => SubmitTaskWithDependencies(session, p.Item1, p.Item2));
+
+    /// <inheritdoc />
     public string SubmitSubtaskWithDependencies(string session, string parentId, byte[] payload, IList<string> dependencies)
     {
       foreach (var dependency in dependencies)
@@ -124,6 +134,9 @@ namespace Htc.Mock.LocalGridSample
 
       return SubmitSubtask(session, parentId, payload);
     }
+
+    /// <inheritdoc />
+    public IEnumerable<string> SubmitSubtaskWithDependencies(string session, string parentId, IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies) => payloadWithDependencies.Select(p => SubmitSubtaskWithDependencies(session, parentId, p.Item1, p.Item2));
 
     /// <inheritdoc />
     public string CreateSession()

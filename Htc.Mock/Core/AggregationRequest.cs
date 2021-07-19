@@ -38,7 +38,7 @@ namespace Htc.Mock.Core
                               IList<string> resultIdsRequired)
       : base(id)
     {
-      Debug.Assert(resultIdsRequired is not null);
+      Debug.Assert(resultIdsRequired != null);
       Debug.Assert(depth >= 0);
 
       ResultIdsRequired = resultIdsRequired;

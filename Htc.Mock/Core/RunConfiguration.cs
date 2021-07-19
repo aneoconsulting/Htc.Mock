@@ -34,7 +34,7 @@ namespace Htc.Mock.Core
   {
     public static Request DefaultHeadRequest(this RunConfiguration configuration)
       => configuration.SubTasksLevels == 0
-           ? new FinalRequest()
+           ? (Request) new FinalRequest()
            : new ComputeRequest(configuration.SubTasksLevels, configuration.TotalNbSubTasks);
   }
 
@@ -42,19 +42,19 @@ namespace Htc.Mock.Core
   [ProtoContract(SkipConstructor = true)]
   public class RunConfiguration
   {
-    private const int NbSamples           = 100000;
+    private const int NbSamples = 100000;
 
     [ProtoMember(1)]
     private readonly int[] durationSamples_;
-    
+
 
     public RunConfiguration(TimeSpan totalCalculationTime,
                             int      totalNbSubTasks,
                             int      data,
                             int      memory,
                             int      subTasksLevels,
-                            int      minDurationMs   = -1,
-                            int      maxDurationMs   = -1)
+                            int      minDurationMs = -1,
+                            int      maxDurationMs = -1)
     {
       Debug.Assert(totalCalculationTime.TotalMilliseconds > 0);
       Debug.Assert(subTasksLevels == 0 || totalNbSubTasks > 0);
@@ -66,25 +66,25 @@ namespace Htc.Mock.Core
       Data                 = data;
       Memory               = memory;
       SubTasksLevels       = subTasksLevels;
-      AvgDurationMs = TotalCalculationTime.TotalMilliseconds / (TotalNbSubTasks + 1);
-      MinDurationMs = minDurationMs == -1 ? (int) (AvgDurationMs / 3) : minDurationMs;
-      MaxDurationMs = maxDurationMs == -1 ? (int) (AvgDurationMs * 30) : maxDurationMs;
+      AvgDurationMs        = TotalCalculationTime.TotalMilliseconds / (TotalNbSubTasks + 1);
+      MinDurationMs        = minDurationMs == -1 ? (int) (AvgDurationMs / 3) : minDurationMs;
+      MaxDurationMs        = maxDurationMs == -1 ? (int) (AvgDurationMs * 30) : maxDurationMs;
 
       var seed = (int) TotalCalculationTime.Ticks +
-                  2 * TotalNbSubTasks +
-                  3 * Data +
-                  4 * Memory +
-                  5 * SubTasksLevels +
-                  6 * MinDurationMs +
-                  7 * MaxDurationMs +
-                  8 * NbSamples;
+                 2 * TotalNbSubTasks +
+                 3 * Data +
+                 4 * Memory +
+                 5 * SubTasksLevels +
+                 6 * MinDurationMs +
+                 7 * MaxDurationMs +
+                 8 * NbSamples;
 
       var ran = new Random(seed);
 
       durationSamples_ = Enumerable.Range(0, NbSamples)
                                    .Select(_ => (int) Beta.Sample(ran, MinDurationMs, AvgDurationMs, MaxDurationMs))
                                    .ToArray();
-      
+
       Console.WriteLine($"{nameof(TotalCalculationTime)}={TotalCalculationTime}");
       Console.WriteLine($"{nameof(TotalNbSubTasks)}={TotalNbSubTasks}");
       Console.WriteLine($"{nameof(Data)}={Data}");
@@ -119,55 +119,55 @@ namespace Htc.Mock.Core
 
     [ProtoMember(9)]
     public double AvgDurationMs { get; }
-    
+
     public int GetTaskDurationMs(string taskId)
     {
-      Debug.Assert(durationSamples_ is not null, nameof(durationSamples_) + " != null");
+      Debug.Assert(durationSamples_ != null, nameof(durationSamples_) + " != null");
       var hash   = taskId.GetCryptoHashCode();
       var result = durationSamples_[hash % NbSamples];
       return result;
     }
 
     [PublicAPI]
-    public static RunConfiguration Minimal => new(new TimeSpan(0, 0, 0, 0, 100),
-                                                  0,
-                                                  1,
-                                                  1,
-                                                  0);
+    public static RunConfiguration Minimal => new RunConfiguration(new TimeSpan(0, 0, 0, 0, 100),
+                                                                   0,
+                                                                   1,
+                                                                   1,
+                                                                   0);
 
     [PublicAPI]
-    public static RunConfiguration XSmall => new(new TimeSpan(0, 2, 0),
-                                                 10,
-                                                 1,
-                                                 1,
-                                                 1);
+    public static RunConfiguration XSmall => new RunConfiguration(new TimeSpan(0, 2, 0),
+                                                                  10,
+                                                                  1,
+                                                                  1,
+                                                                  1);
 
     [PublicAPI]
-    public static RunConfiguration Small => new(new TimeSpan(0, 10, 0),
-                                                100,
-                                                1,
-                                                1,
-                                                2);
+    public static RunConfiguration Small => new RunConfiguration(new TimeSpan(0, 10, 0),
+                                                                 100,
+                                                                 1,
+                                                                 1,
+                                                                 2);
 
     [PublicAPI]
-    public static RunConfiguration Medium => new(new TimeSpan(1, 0, 0),
-                                                 10000,
-                                                 1,
-                                                 1,
-                                                 3);
+    public static RunConfiguration Medium => new RunConfiguration(new TimeSpan(1, 0, 0),
+                                                                  10000,
+                                                                  1,
+                                                                  1,
+                                                                  3);
 
     [PublicAPI]
-    public static RunConfiguration Large => new(new TimeSpan(36, 0, 0),
-                                                4000000,
-                                                1,
-                                                2,
-                                                5);
+    public static RunConfiguration Large => new RunConfiguration(new TimeSpan(36, 0, 0),
+                                                                 4000000,
+                                                                 1,
+                                                                 2,
+                                                                 5);
 
     [PublicAPI]
-    public static RunConfiguration XLarge => new(new TimeSpan(24000, 0, 0),
-                                                 6000000,
-                                                 1,
-                                                 3,
-                                                 7);
+    public static RunConfiguration XLarge => new RunConfiguration(new TimeSpan(24000, 0, 0),
+                                                                  6000000,
+                                                                  1,
+                                                                  3,
+                                                                  7);
   }
 }

@@ -1,22 +1,9 @@
-﻿/* DistributedRequestRunner.cs is part of the Htc.Mock solution.
-    
-   Copyright (c) 2021-2021 ANEO. 
-     W. Kirschenmann (https://github.com/wkirschenmann)
-  
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-*/ 
-
+﻿// This file is part of the Htc.Mock solution.
+// 
+// Copyright (c) ANEO. All rights reserved.
+// * Wilfried KIRSCHENMANN (ANEO)
+// 
+// 
 
 using System;
 using System.Linq;
@@ -29,7 +16,7 @@ using JetBrains.Annotations;
 namespace Htc.Mock.RequestRunners
 {
   [PublicAPI]
-  public class DistributedRequestRunner : IRequestRunner
+  public class WaitingDistributedRequestRunner : IRequestRunner
   {
     private readonly RunConfiguration runConfiguration_;
     private readonly RequestProcessor requestProcessor_;
@@ -54,15 +41,16 @@ namespace Htc.Mock.RequestRunners
     /// It is assumed to be a deployment configuration.</param>
     /// <param name="dataClient"></param>
     /// <param name="session"></param>
-    public DistributedRequestRunner(IDataClient dataClient,
-                                    IGridClient gridClient,
-                                    RunConfiguration runConfiguration,
-                                    string session,
-                                    bool waitDependencies = false,
-                                    bool fastCompute = false,
-                                    bool useLowMem = false,
-                                    bool smallOutput = false)
+    public WaitingDistributedRequestRunner(IDataClient      dataClient,
+                                           IGridClient      gridClient,
+                                           RunConfiguration runConfiguration,
+                                           string           session,
+                                           bool             waitDependencies = false,
+                                           bool             fastCompute      = false,
+                                           bool             useLowMem        = false,
+                                           bool             smallOutput      = false)
     {
+
       runConfiguration_ = runConfiguration;
       requestProcessor_ = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration);
       dataClient_       = dataClient;
@@ -95,12 +83,13 @@ namespace Htc.Mock.RequestRunners
           var data = Encoding.ASCII.GetBytes(result.Result);
           dataClient_.StoreData(aggregationRequest.Id, data);
           dataClient_.StoreData(aggregationRequest.ParentId, data);
-
+          
           return result.Output;
         }
 
         case ComputeRequest computeRequest:
         {
+          gridClient_.WaitSubtasksCompletion(taskId);
           var result = requestProcessor_.GetResult(computeRequest, Array.Empty<string>());
 
           var subRequestsByDepsRq = result.SubRequests

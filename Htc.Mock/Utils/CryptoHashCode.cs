@@ -48,7 +48,7 @@ namespace Htc.Mock.Utils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint GetCryptoHashCodeInternals(this string input, uint hash)
     {
       var inputBytes = MemoryMarshal.AsBytes(input.AsSpan());
@@ -67,7 +67,6 @@ namespace Htc.Mock.Utils
     public static uint GetCryptoHashCode(this string input) => GetCryptoHashCodeInternals(input, uint.MaxValue);
 
     [PublicAPI]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static uint GetCryptoHashCode(this IEnumerable<string> enumerable)
     {
       return enumerable.Aggregate(uint.MaxValue, 

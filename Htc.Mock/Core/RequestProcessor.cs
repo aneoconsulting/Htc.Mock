@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Htc.Mock.Utils;
 
@@ -47,24 +48,34 @@ namespace Htc.Mock.Core
 
 
     [PublicAPI]
-    public RequestResult GetResult(Request request, IList<string> inputs)
+    public RequestResult GetResult(Request request, IEnumerable<string> inputs)
     {
-      Debug.Assert(inputs is not null);
+      Debug.Assert(inputs != null);
       var output = EmulateComputation(request);
-      return ComputeResult(request, inputs).WithOutput(output);
+      var res1   = ComputeResult(request, inputs);
+      output.Wait();
+      return res1.WithOutput(output.Result);
     }
 
-    protected static RequestResult ComputeResult(AggregationRequest request, IList<string> inputs)
+    protected static RequestResult ComputeResult(AggregationRequest request, IEnumerable<string> inputs)
     {
-      Debug.Assert(inputs is not null);
+      Console.WriteLine($"{nameof(ComputeRequest)}: Processing a AggregationRequest.");
+      Debug.Assert(inputs != null);
 
-      if (request.ResultIdsRequired.Count != inputs.Count)
-        throw new
-          ArgumentException($"{nameof(request)} requires {request.ResultIdsRequired.Count} inputs, {inputs.Count} provided.",
-                            nameof(inputs));
+      var nbInputs   = 0;
+      var inputsList = inputs.Select(i => 
+                                     { 
+                                       nbInputs++;
+                                       return i;
+                                     });
 
       // use this computation to check that the good results were retrieved
-      var result = GetResultString(GetAggregateString(GetAggregationRes(inputs)));
+      var result = GetResultString(GetAggregateString(GetAggregationRes(inputsList)));
+
+      if (request.ResultIdsRequired.Count != nbInputs)
+        throw new
+          ArgumentException($"{nameof(request)} requires {request.ResultIdsRequired.Count} inputs, {nbInputs} provided.",
+                            nameof(inputs));
 
       return new RequestResult(request.Id, result);
     }
@@ -72,6 +83,7 @@ namespace Htc.Mock.Core
 
     protected static RequestResult ComputeResult(FinalRequest request, IList<string> inputs)
     {
+      Console.WriteLine($"{nameof(ComputeRequest)}: Processing a FinalRequest.");
       if (inputs.Any())
         throw new
           ArgumentException($"{nameof(request)} requires no inputs, {inputs.Count} provided.", nameof(inputs));
@@ -81,6 +93,7 @@ namespace Htc.Mock.Core
 
     protected static RequestResult ComputeResult(ComputeRequest request, IList<string> inputs)
     {
+      Console.WriteLine($"{nameof(ComputeRequest)}: Processing a ComputeRequest (it will generate subrequests).");
       if (inputs.Any())
         throw new
           ArgumentException($"{nameof(request)} requires no inputs, {inputs.Count} provided.", nameof(inputs));
@@ -93,18 +106,27 @@ namespace Htc.Mock.Core
 
       for (var i = 0; i < targetNbRq - 2; ++i)
       {
-        var nbSubReq = remainingRequests switch
-                       {
-                         0 => 0,
-                         1 => throw new InvalidOperationException(),
-                         2 => 2,
-                         _ => 2 + (int) (request.Id.GetCryptoHashCode() % (remainingRequests -2)),
-                       };
+        int nbSubReq;
+        switch (remainingRequests)
+        {
+          case 0:
+            nbSubReq = 0;
+            break;
+          case 1:
+            throw new InvalidOperationException();
+          case 2:
+            nbSubReq = 2;
+            break;
+          default:
+            nbSubReq = 2 + (int) (request.Id.GetCryptoHashCode() % (remainingRequests - 2));
+            break;
+        }
+
         if (remainingRequests - nbSubReq < 2)
           nbSubReq = remainingRequests;
 
         subRequests.Add(nbSubReq == 0
-                          ? new FinalRequest($"{request.Id}_{i}")
+                          ? (Request) new FinalRequest($"{request.Id}_{i}")
                           : new ComputeRequest($"{request.Id}_{i}",
                                                request.Depth - 1,
                                                nbSubReq));
@@ -112,7 +134,7 @@ namespace Htc.Mock.Core
       }
 
       subRequests.Add(remainingRequests == 0
-                        ? new FinalRequest($"{request.Id}_{targetNbRq - 2}")
+                        ? (Request) new FinalRequest($"{request.Id}_{targetNbRq - 2}")
                         : new ComputeRequest($"{request.Id}_{targetNbRq - 2}",
                                              request.Depth - 1,
                                              remainingRequests));
@@ -134,19 +156,25 @@ namespace Htc.Mock.Core
                                request.Depth-1,
                                subRequestIds);
       subRequests.Add(aggregationRequest);
+
+      Console.WriteLine($"{nameof(ComputeRequest)}: {subRequests.Count} subrequests generated.");
       return new RequestResult(request.Id, subRequests);
 
     }
 
-    protected static RequestResult ComputeResult(Request request, IList<string> inputs)
+    protected static RequestResult ComputeResult(Request request, IEnumerable<string> inputs)
     {
-      return request switch
-             {
-               AggregationRequest aggregationRequest => ComputeResult(aggregationRequest, inputs),
-               ComputeRequest computeRequest         => ComputeResult(computeRequest, inputs),
-               FinalRequest finalRequest             => ComputeResult(finalRequest, inputs),
-               _                                     => throw new ArgumentException($"{typeof(Request)} request cannot be handled.")
-             };
+      switch (request)
+      {
+        case AggregationRequest aggregationRequest:
+          return ComputeResult(aggregationRequest, inputs);
+        case ComputeRequest computeRequest:
+          return ComputeResult(computeRequest, inputs);
+        case FinalRequest finalRequest:
+          return ComputeResult(finalRequest, inputs);
+        default:
+          throw new ArgumentException($"{typeof(Request)} request cannot be handled.");
+      }
     }
 
     public static string GetResultString(string taskId) => $"{taskId}_result";
@@ -158,9 +186,9 @@ namespace Htc.Mock.Core
 
     public static string GetAggregateString(uint res) => $"Aggregate_{res}";
 
-    private byte[] EmulateComputation(Request request)
+    private async Task<byte[]> EmulateComputation(Request request)
     {
-      var t = System.Threading.Tasks.Task.Delay(fastCompute_?0: runConfiguration_.GetTaskDurationMs(request.Id));
+      var t = Task.Delay(fastCompute_?0: runConfiguration_.GetTaskDurationMs(request.Id));
 
       var m = useLowMem_ ? new byte[0, 0] : new byte[runConfiguration_.Memory, 1024];
       // Write all bytes to ensure that the memory is really allocated
@@ -178,7 +206,7 @@ namespace Htc.Mock.Core
         output[i] = (byte)((runConfiguration_.Data & 2019) * i);
       }
 
-      t.Wait();
+      await t;
 
       return output;
     }

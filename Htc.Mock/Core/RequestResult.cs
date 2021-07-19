@@ -21,9 +21,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
 using System.Linq;
+
+
+using NotNullAttribute = JetBrains.Annotations.NotNullAttribute;
 
 namespace Htc.Mock.Core
 {
@@ -41,14 +42,14 @@ namespace Htc.Mock.Core
       : this(requestId, false, string.Empty, subRequests, Array.Empty<byte>())
     {
       Debug.Assert(!string.IsNullOrEmpty(requestId));
-      Debug.Assert(subRequests is not null);
+      Debug.Assert(subRequests != null);
     }
 
     private RequestResult(string requestId, bool hasResult, string result, IList<Request> subRequests, byte[] output)
     {
       Debug.Assert(!string.IsNullOrEmpty(requestId));
-      Debug.Assert(subRequests is not null);
-      Debug.Assert(output is not null);
+      Debug.Assert(subRequests != null);
+      Debug.Assert(output != null);
       if (hasResult)
       {
         Debug.Assert(!subRequests.Any());
@@ -66,10 +67,9 @@ namespace Htc.Mock.Core
       Output    = output;
     }
 
-    [Pure]
     public RequestResult WithOutput(byte[] output)
     {
-      Debug.Assert(output is not null);
+      Debug.Assert(output != null);
       return new RequestResult(RequestId, HasResult, Result, SubRequests, output);
     }
 

@@ -98,15 +98,11 @@ namespace Htc.Mock.RequestRunners
           var result = requestProcessor_.GetResult(computeRequest, Array.Empty<string>());
 
           var subRequestsByDepsRq = result.SubRequests
-                                          .ToLookup(sr => sr is not AggregationRequest);
+                                          .ToLookup(sr => !(sr is AggregationRequest));
 
-          var subtaskIds = subRequestsByDepsRq[true]
-                          .AsParallel()
-                          .Select(leafRequest
-                                    => gridClient_.SubmitTask(session_,
-                                                                 DataAdapter.BuildPayload(runConfiguration_, leafRequest)))
-                          .ToList();
 
+          var subtasksPayload = subRequestsByDepsRq[true].Select(lr => DataAdapter.BuildPayload(runConfiguration_, lr));
+          var subtaskIds = gridClient_.SubmitTasks(session_, subtasksPayload);
 
           // We split the waiting in two to ease the scheduling by the parallel runtime
           foreach (var subtaskId in subtaskIds)
@@ -121,7 +117,7 @@ namespace Htc.Mock.RequestRunners
         }
 
         default:
-          throw new ArgumentException($"{typeof(Request)} is not supported.");
+          throw new ArgumentException($"{typeof(Request)} != supported.");
       }
     }
   }

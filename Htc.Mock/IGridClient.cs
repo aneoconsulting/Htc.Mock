@@ -15,10 +15,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-*/ 
+*/
 
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using JetBrains.Annotations;
 
@@ -55,18 +57,18 @@ namespace Htc.Mock
     /// Submit a new <c>Task</c> to be processed
     /// </summary>
     /// <param name="session">The session to which submit the new <c>task</c></param>
-    /// <param name="payload">The payload of the task to process</param>
-    /// <returns>The id of the task corresponding to the <c>Task</c></returns>
-    string SubmitTask(string session, byte[] payload);
+    /// <param name="payloads">The payloads of the tasks to process</param>
+    /// <returns>The ids of the tasks corresponding to the <c>Tasks</c></returns>
+    IEnumerable<string> SubmitTasks(string session, IEnumerable<byte[]> payloads);
 
     /// <summary>
     /// Submit a new <c>Task</c> to be processed
     /// </summary>
     /// <param name="session">The session to which submit the new <c>task</c></param>
     /// <param name="parentId"></param>
-    /// <param name="payload">The payload of the task to process</param>
-    /// <returns>The id of the task corresponding to the <c>Task</c></returns>
-    string SubmitSubtask(string session, string parentId, byte[] payload);
+    /// <param name="payloads">The payloads of the tasks to process</param>
+    /// <returns>The ids of the tasks corresponding to the <c>Tasks</c></returns>
+    IEnumerable<string> SubmitSubtask(string session, string parentId, IEnumerable<byte[]> payloads);
 
     /// <summary>
     /// Submit a new <c>Task</c> to be processed after completion of its dependencies
@@ -76,6 +78,8 @@ namespace Htc.Mock
     /// <param name="dependencies">The list of dependencies that have to be processed before start processing <c>task</c></param>
     string SubmitTaskWithDependencies(string session, byte[] payload, IList<string> dependencies);
 
+    IEnumerable<string> SubmitTaskWithDependencies(string session, IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies);
+
     /// <summary>
     /// Submit a new <c>Task</c> to be processed after completion of its dependencies
     /// </summary>
@@ -84,6 +88,7 @@ namespace Htc.Mock
     /// <param name="payload">The payload of the task to process</param>
     /// <param name="dependencies">The list of dependencies that have to be processed before start processing <c>task</c></param>
     string SubmitSubtaskWithDependencies(string session, string parentId, byte[] payload, IList<string> dependencies);
+    IEnumerable<string> SubmitSubtaskWithDependencies(string session, string parentId, IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies);
 
     string CreateSession();
 
@@ -94,8 +99,29 @@ namespace Htc.Mock
     void CancelTask(string taskId);
   }
 
+  [PublicAPI]
   public static class GridClientExt
   {
+    /// <summary>
+    /// Submit a new <c>Task</c> to be processed
+    /// </summary>
+    /// <param name="session">The session to which submit the new <c>task</c></param>
+    /// <param name="payload">The payload of the task to process</param>
+    /// <returns>The id of the task corresponding to the <c>Task</c></returns>
+    public static string SubmitTask(this IGridClient client, string session, byte[] payload) 
+      => client.SubmitTasks(session, new[] {payload}).Single();
+
+
+    /// <summary>
+    /// Submit a new <c>Task</c> to be processed
+    /// </summary>
+    /// <param name="session">The session to which submit the new <c>task</c></param>
+    /// <param name="parentId"></param>
+    /// <param name="payload">The payload of the task to process</param>
+    /// <returns>The id of the task corresponding to the <c>Task</c></returns>
+    public static string SubmitSubtask(this IGridClient client, string session, string parentId, byte[] payload)
+      => client.SubmitSubtask(session, parentId, new[] { payload }).Single();
+
     /// <summary>
     /// Wait for the dependencies to be completed and then submits a new task
     /// </summary>

@@ -39,14 +39,14 @@ namespace Htc.Mock
 
     public byte[] Execute(string session, string taskId, byte[] payload)
     {
-      var (runConfiguration, request) = DataAdapter.ReadPayload(payload);
+      var readPayload = DataAdapter.ReadPayload(payload);
       if (session != currentSession_)
       {
-        requestRunner_  = requestRunnerFactory_.Create(runConfiguration, session);
+        requestRunner_  = requestRunnerFactory_.Create(readPayload.Item1, session);
         currentSession_ = session;
       }
 
-      return requestRunner_.ProcessRequest(request, taskId);
+      return requestRunner_.ProcessRequest(readPayload.Item2, taskId);
     }
   }
 }

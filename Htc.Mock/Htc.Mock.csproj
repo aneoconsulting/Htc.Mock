@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFrameworks>net5.0;net461;netstandard2.0</TargetFrameworks>
+    <AutoGenerateBindingRedirects></AutoGenerateBindingRedirects>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -11,9 +12,11 @@
     <Copyright>Copyright (c) 2021-2021 ANEO.</Copyright>
     <Authors>Wilfried Kirschenmann</Authors>
     <Company>ANEO</Company>
-    <AssemblyVersion>1.0.3.1</AssemblyVersion>
-    <FileVersion>1.0.3.1</FileVersion>
-    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.8.1</AssemblyVersion>
+    <FileVersion>1.0.8.1</FileVersion>
+    <Version>1.0.8</Version>
+    <WarningLevel>5</WarningLevel>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
