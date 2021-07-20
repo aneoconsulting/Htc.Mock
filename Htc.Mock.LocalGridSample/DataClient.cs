@@ -24,14 +24,14 @@ namespace Htc.Mock.LocalGridSample
 {
   class DataClient : IDataClient
   {
-    private readonly ConcurrentDictionary<string, byte[]> dataStore_ = new();
+    private readonly ConcurrentDictionary<string, byte[]> dataStore = new();
     /// <inheritdoc />
-    public byte[] GetData(string key) => dataStore_[key];
+    public byte[] GetData(string key) => dataStore[key];
 
     /// <inheritdoc />
     public void StoreData(string key, byte[] data)
     {
-      dataStore_[key] = data;
+      dataStore[key] = data;
     }
   }
 }

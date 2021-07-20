@@ -20,16 +20,76 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using JetBrains.Annotations;
-
 namespace Htc.Mock.Utils
 {
-  public static class CryptoHashCode
+  public class CryptoHashCode
   {
+    public uint Hash { get; private set; } = uint.MaxValue;
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(byte input)
+    {
+      Hash = ChecksumTable[(Hash ^ input) & byte.MaxValue] ^ (Hash >> 8);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(byte[] input)
+    {
+      // ReSharper disable once ForCanBeConvertedToForeach
+      for (var i = 0; i < input.Length; i++)
+      {
+        Add(input[i]);
+      }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(ReadOnlySpan<byte> input)
+    {
+      // ReSharper disable once ForCanBeConvertedToForeach
+      for (var i = 0; i < input.Length; i++)
+      {
+        Add(input[i]);
+      }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add<T>(T input) where T : struct
+      => Add(Unsafe.As<byte[]>(input));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add<T>(T[] input) where T : struct
+      => Add(Unsafe.As<byte[]>(input));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add<T>(IEnumerable<T> input) where T : struct
+    {
+      foreach (var element in input)
+      {
+        Add(element);
+      }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(string input) => Add(MemoryMarshal.AsBytes(input.AsSpan()));
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(IEnumerable<string> input)
+    {
+      foreach (var element in input)
+      {
+        Add(element);
+      }
+    }
+    
+
+
+
+
     private static readonly uint[] ChecksumTable;
 
     private const uint Polynomial = 0xEDB88320;
@@ -46,31 +106,23 @@ namespace Htc.Mock.Utils
         ChecksumTable[index] = item;
       }
     }
+  }
 
+  public static class CryptoHashCodeExt
+  {
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint GetCryptoHashCodeInternals(this string input, uint hash)
+    public static uint GetCryptoHashCode(this string input)
     {
-      var inputBytes = MemoryMarshal.AsBytes(input.AsSpan());
-
-      // ReSharper disable once ForCanBeConvertedToForeach
-      for (var index = 0; index < inputBytes.Length; index++)
-      {
-        var b = inputBytes[index];
-        hash = ChecksumTable[(hash ^ b) & byte.MaxValue] ^ (hash >> 8);
-      }
-
-      return hash;
+      var coder = new CryptoHashCode();
+      coder.Add(input);
+      return coder.Hash;
     }
 
-    [PublicAPI]
-    public static uint GetCryptoHashCode(this string input) => GetCryptoHashCodeInternals(input, uint.MaxValue);
-
-    [PublicAPI]
     public static uint GetCryptoHashCode(this IEnumerable<string> enumerable)
     {
-      return enumerable.Aggregate(uint.MaxValue, 
-                                  (current, s) => GetCryptoHashCodeInternals(s, current));
+      var coder = new CryptoHashCode();
+      coder.Add(enumerable);
+      return coder.Hash;
     }
   }
 }

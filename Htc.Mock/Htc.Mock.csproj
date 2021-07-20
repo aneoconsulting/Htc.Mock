@@ -4,17 +4,16 @@
     <TargetFrameworks>net5.0;net461;netstandard2.0</TargetFrameworks>
     <AutoGenerateBindingRedirects></AutoGenerateBindingRedirects>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Description>This package contains components to test the functionnalities of HTC grid systems.</Description>
+    <Description>This package contains components to test the functionnalities of HTC grid systems (e.g. IBM Symphony, Tibco Datasynapse, etc.).</Description>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <Copyright>Copyright (c) 2021-2021 ANEO.</Copyright>
     <Authors>Wilfried Kirschenmann</Authors>
     <Company>ANEO</Company>
-    <AssemblyVersion>1.0.8.1</AssemblyVersion>
-    <FileVersion>1.0.8.1</FileVersion>
-    <Version>1.0.8</Version>
+    <AssemblyVersion>1.0.9.1</AssemblyVersion>
+    <FileVersion>1.0.9.1</FileVersion>
+    <Version>1.0.9</Version>
     <WarningLevel>5</WarningLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>

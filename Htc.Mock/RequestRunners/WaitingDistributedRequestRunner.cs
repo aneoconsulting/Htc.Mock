@@ -18,12 +18,12 @@ namespace Htc.Mock.RequestRunners
   [PublicAPI]
   public class WaitingDistributedRequestRunner : IRequestRunner
   {
-    private readonly RunConfiguration runConfiguration_;
-    private readonly RequestProcessor requestProcessor_;
-    private readonly IDataClient      dataClient_;
-    private readonly IGridClient      gridClient_;
-    private readonly string           session_;
-    private readonly bool             waitDependencies_;
+    private readonly RunConfiguration runConfiguration;
+    private readonly RequestProcessor requestProcessor;
+    private readonly IDataClient      dataClient;
+    private readonly IGridClient      gridClient;
+    private readonly string           session;
+    private readonly bool             waitDependencies;
 
     /// <summary>
     /// Builds a <c>DistributedRequestRunner</c>. The lifecycle of the object is meant to
@@ -51,14 +51,14 @@ namespace Htc.Mock.RequestRunners
                                            bool             smallOutput      = false)
     {
 
-      runConfiguration_ = runConfiguration;
-      requestProcessor_ = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration);
-      dataClient_       = dataClient;
-      gridClient_       = gridClient;
-      session_          = session;
-      waitDependencies_ = waitDependencies;
+      this.runConfiguration = runConfiguration;
+      requestProcessor      = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration);
+      this.dataClient       = dataClient;
+      this.gridClient       = gridClient;
+      this.session          = session;
+      this.waitDependencies = waitDependencies;
 
-      gridClient_.OpenSession(session_);
+      this.gridClient.OpenSession(this.session);
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
@@ -68,50 +68,50 @@ namespace Htc.Mock.RequestRunners
       {
         case FinalRequest finalRequest:
         {
-          var result = requestProcessor_.GetResult(finalRequest, Array.Empty<string>());
-          dataClient_.StoreData(request.Id, Encoding.ASCII.GetBytes(result.Result));
+          var result = requestProcessor.GetResult(finalRequest, Array.Empty<string>());
+          dataClient.StoreData(request.Id, Encoding.ASCII.GetBytes(result.Result));
 
           return result.Output;
         }
 
         case AggregationRequest aggregationRequest:
         {
-          var result = requestProcessor_.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
-                                                                                         .Select(dataClient_.GetData)
+          var result = requestProcessor.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
+                                                                                         .Select(dataClient.GetData)
                                                                                          .Select(Encoding.ASCII.GetString)
                                                                                          .ToList());
           var data = Encoding.ASCII.GetBytes(result.Result);
-          dataClient_.StoreData(aggregationRequest.Id, data);
-          dataClient_.StoreData(aggregationRequest.ParentId, data);
+          dataClient.StoreData(aggregationRequest.Id, data);
+          dataClient.StoreData(aggregationRequest.ParentId, data);
           
           return result.Output;
         }
 
         case ComputeRequest computeRequest:
         {
-          gridClient_.WaitSubtasksCompletion(taskId);
-          var result = requestProcessor_.GetResult(computeRequest, Array.Empty<string>());
+          gridClient.WaitSubtasksCompletion(taskId);
+          var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
 
           var subRequestsByDepsRq = result.SubRequests
                                           .ToLookup(sr => !(sr is AggregationRequest));
 
 
-          var subtasksPayload = subRequestsByDepsRq[true].Select(lr => DataAdapter.BuildPayload(runConfiguration_, lr));
-          var subtaskIds      = gridClient_.SubmitTasks(session_, subtasksPayload);
+          var subtasksPayload = subRequestsByDepsRq[true].Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
+          var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
 
           var aggregationRequest = subRequestsByDepsRq[false].Cast<AggregationRequest>()
                                                              .Single();
 
-          if (waitDependencies_)
-            gridClient_.WaitDependenciesAndSubmitSubtask(session_,
+          if (waitDependencies)
+            gridClient.WaitDependenciesAndSubmitSubtask(session,
                                                          taskId,
-                                                         DataAdapter.BuildPayload(runConfiguration_,
+                                                         DataAdapter.BuildPayload(runConfiguration,
                                                                                   aggregationRequest),
                                                          subtaskIds);
           else
-            gridClient_.SubmitSubtaskWithDependencies(session_,
+            gridClient.SubmitSubtaskWithDependencies(session,
                                                       taskId,
-                                                      DataAdapter.BuildPayload(runConfiguration_,
+                                                      DataAdapter.BuildPayload(runConfiguration,
                                                                                aggregationRequest),
                                                       subtaskIds.ToList());
 

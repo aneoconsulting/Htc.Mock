@@ -19,6 +19,7 @@
 
 
 using System;
+using System.Linq;
 
 using Htc.Mock.Core;
 using Htc.Mock.Utils;
@@ -49,7 +50,7 @@ namespace Htc.Mock.Tests
       var requestResult = requestProcessor.GetResult(request, Array.Empty<string>());
 
       Assert.IsTrue(requestResult.HasResult);
-      Assert.IsTrue(requestResult.SubRequests.Count == 0);
+      Assert.IsTrue(!requestResult.SubRequests.Any());
       Assert.AreEqual("HeadId_result", requestResult.Result);
       Assert.AreEqual("HeadId", requestResult.RequestId);
     }
@@ -79,7 +80,7 @@ namespace Htc.Mock.Tests
       var res = inputs.GetCryptoHashCode();
 
       Assert.IsTrue(requestResult.HasResult);
-      Assert.IsTrue(requestResult.SubRequests.Count == 0);
+      Assert.IsTrue(! requestResult.SubRequests.Any());
       Assert.AreEqual($"Aggregate_{res}_result", requestResult.Result);
       Assert.AreEqual("AggregateTest", requestResult.RequestId);
     }
@@ -103,15 +104,15 @@ namespace Htc.Mock.Tests
       var requestResult = requestProcessor.GetResult(request, Array.Empty<string>());
 
       Assert.IsFalse(requestResult.HasResult);
-      Assert.AreEqual(2, requestResult.SubRequests.Count);
+      Assert.AreEqual(2, requestResult.SubRequests.Count());
       Assert.IsTrue(string.IsNullOrEmpty(requestResult.Result));
-      Assert.AreEqual($"NestTest_0", requestResult.SubRequests[0].Id);
+      Assert.AreEqual($"NestTest_0", requestResult.SubRequests.First().Id);
 
       // This task is an aggregation
-      Assert.IsInstanceOf<AggregationRequest>(requestResult.SubRequests[1]);
-      Assert.IsTrue(((AggregationRequest)requestResult.SubRequests[1]).ResultIdsRequired.Count == 1);
+      Assert.IsInstanceOf<AggregationRequest>(requestResult.SubRequests.Skip(1).First());
+      Assert.IsTrue(((AggregationRequest)requestResult.SubRequests.Skip(1).First()).ResultIdsRequired.Count == 1);
       var res = "NestTest_0_result".GetCryptoHashCode(); 
-      Assert.AreEqual($"Aggregate_{res}", requestResult.SubRequests[1].Id);
+      Assert.AreEqual($"Aggregate_{res}", requestResult.SubRequests.Skip(1).First().Id);
     }
   }
 }

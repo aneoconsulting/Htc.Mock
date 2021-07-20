@@ -33,17 +33,17 @@ namespace Htc.Mock.Core
   [PublicAPI]
   public class RequestProcessor
   {
-    private readonly RunConfiguration runConfiguration_;
-    private readonly bool             fastCompute_;
-    private readonly bool             useLowMem_;
-    private readonly bool             smallOutput_;
+    private readonly RunConfiguration runConfiguration;
+    private readonly bool             fastCompute;
+    private readonly bool             useLowMem;
+    private readonly bool             smallOutput;
 
     public RequestProcessor(bool fastCompute, bool useLowMem, bool smallOutput, RunConfiguration runConfiguration) 
     {
-      fastCompute_      = fastCompute;
-      useLowMem_        = useLowMem;
-      smallOutput_      = smallOutput;
-      runConfiguration_ = runConfiguration;
+      this.fastCompute      = fastCompute;
+      this.useLowMem        = useLowMem;
+      this.smallOutput      = smallOutput;
+      this.runConfiguration = runConfiguration;
     }
 
 
@@ -52,7 +52,7 @@ namespace Htc.Mock.Core
     {
       Debug.Assert(inputs != null);
       var output = EmulateComputation(request);
-      var res1   = ComputeResult(request, inputs);
+      var res1   = ComputeResultDispatch(request, inputs);
       output.Wait();
       return res1.WithOutput(output.Result);
     }
@@ -81,30 +81,41 @@ namespace Htc.Mock.Core
     }
 
 
-    protected static RequestResult ComputeResult(FinalRequest request, IList<string> inputs)
+    protected static RequestResult ComputeResult(FinalRequest request, IEnumerable<string> inputs)
     {
       Console.WriteLine($"{nameof(ComputeRequest)}: Processing a FinalRequest.");
-      if (inputs.Any())
+      var inputList = inputs.ToList();
+      if (inputList.Any())
         throw new
-          ArgumentException($"{nameof(request)} requires no inputs, {inputs.Count} provided.", nameof(inputs));
+          ArgumentException($"{nameof(request)} requires no inputs, {inputList.Count} provided.", nameof(inputs));
 
       return new RequestResult(request.Id, GetResultString(request.Id));
     }
 
-    protected static RequestResult ComputeResult(ComputeRequest request, IList<string> inputs)
+    protected static RequestResult ComputeResult(ComputeRequest request, IEnumerable<string> inputs)
     {
       Console.WriteLine($"{nameof(ComputeRequest)}: Processing a ComputeRequest (it will generate subrequests).");
-      if (inputs.Any())
+      var inputList = inputs.ToList();
+      if (inputList.Any())
         throw new
-          ArgumentException($"{nameof(request)} requires no inputs, {inputs.Count} provided.", nameof(inputs));
+          ArgumentException($"{nameof(request)} requires no inputs, {inputList.Count} provided.", nameof(inputs));
 
-      var targetNbRq        = Math.Max(2, (int)Math.Pow(request.NbSubrequests, 1.0 / request.Depth));
+      var subRequests = ComputeSubRequests(request);
+
+      return new RequestResult(request.Id, subRequests);
+
+    }
+
+    private static IEnumerable<Request> ComputeSubRequests(ComputeRequest request)
+    {
+      var targetNbRq = Math.Max(2, (int)Math.Pow(request.NbSubrequests, 1.0 / request.Depth));
       if (request.NbSubrequests - targetNbRq < 2)
         targetNbRq = request.NbSubrequests;
       var remainingRequests = request.NbSubrequests - targetNbRq;
-      var subRequests       = new List<Request>(targetNbRq);
 
-      for (var i = 0; i < targetNbRq - 2; ++i)
+      var subRequestIds = new List<string>(targetNbRq);
+
+      for (var i = 0 ; i < targetNbRq - 2 ; ++i)
       {
         int nbSubReq;
         switch (remainingRequests)
@@ -118,51 +129,58 @@ namespace Htc.Mock.Core
             nbSubReq = 2;
             break;
           default:
-            nbSubReq = 2 + (int) (request.Id.GetCryptoHashCode() % (remainingRequests - 2));
+            nbSubReq = 2 + (int)(request.Id.GetCryptoHashCode() % (remainingRequests - 2));
             break;
         }
 
         if (remainingRequests - nbSubReq < 2)
           nbSubReq = remainingRequests;
 
-        subRequests.Add(nbSubReq == 0
-                          ? (Request) new FinalRequest($"{request.Id}_{i}")
-                          : new ComputeRequest($"{request.Id}_{i}",
-                                               request.Depth - 1,
-                                               nbSubReq));
+        var subrequestId = $"{request.Id}_{i}";
+        subRequestIds.Add(subrequestId);
+
+        if (nbSubReq == 0)
+        {
+          yield return new FinalRequest(subrequestId);
+        }
+        else
+        {
+          yield return new ComputeRequest(subrequestId,
+                                          request.Depth - 1,
+                                          nbSubReq);
+        }
+
         remainingRequests -= nbSubReq;
       }
 
-      subRequests.Add(remainingRequests == 0
-                        ? (Request) new FinalRequest($"{request.Id}_{targetNbRq - 2}")
-                        : new ComputeRequest($"{request.Id}_{targetNbRq - 2}",
-                                             request.Depth - 1,
-                                             remainingRequests));
+      {
 
-      var subRequestIds = subRequests.Select(sr => sr.Id).ToList();
+        var subrequestId = $"{request.Id}_{targetNbRq - 2}";
+        subRequestIds.Add(subrequestId);
 
-      Debug.Assert(1 +
-                   subRequests.Count +
-                   subRequests.Where(r => r is ComputeRequest)
-                              .Cast<ComputeRequest>()
-                              .Sum(cr => cr.NbSubrequests) ==
-                   request.NbSubrequests);
+        if (remainingRequests == 0)
+        {
+          yield return new FinalRequest(subrequestId);
+        }
+        else
+        {
+          yield return new ComputeRequest(subrequestId,
+                                          request.Depth - 1,
+                                          remainingRequests);
+        }
+      }
 
       var aggregateString = GetAggregateString(GetAggregationRes(subRequestIds, GetResultString));
 
-      var aggregationRequest =
-        new AggregationRequest(aggregateString,
-                               request.Id,
-                               request.Depth-1,
-                               subRequestIds);
-      subRequests.Add(aggregationRequest);
+      yield return new AggregationRequest(aggregateString,
+                                          request.Id,
+                                          request.Depth - 1,
+                                          subRequestIds);
 
-      Console.WriteLine($"{nameof(ComputeRequest)}: {subRequests.Count} subrequests generated.");
-      return new RequestResult(request.Id, subRequests);
-
+      Console.WriteLine($"{nameof(ComputeRequest)}: {subRequestIds.Count + 1} subrequests generated.");
     }
 
-    protected static RequestResult ComputeResult(Request request, IEnumerable<string> inputs)
+    protected static RequestResult ComputeResultDispatch(Request request, IEnumerable<string> inputs)
     {
       switch (request)
       {
@@ -188,9 +206,9 @@ namespace Htc.Mock.Core
 
     private async Task<byte[]> EmulateComputation(Request request)
     {
-      var t = Task.Delay(fastCompute_?0: runConfiguration_.GetTaskDurationMs(request.Id));
+      var t = Task.Delay(fastCompute?0: runConfiguration.GetTaskDurationMs(request.Id));
 
-      var m = useLowMem_ ? new byte[0, 0] : new byte[runConfiguration_.Memory, 1024];
+      var m = useLowMem ? new byte[0, 0] : new byte[runConfiguration.Memory, 1024];
       // Write all bytes to ensure that the memory is really allocated
       for (var i = 0; i < m.GetLength(0); ++i)
       {
@@ -200,10 +218,10 @@ namespace Htc.Mock.Core
         }
       }
 
-      var output = new byte[smallOutput_ ? 0 : runConfiguration_.Data];
+      var output = new byte[smallOutput ? 0 : runConfiguration.Data];
       for (var i = 0; i < output.Length; ++i)
       {
-        output[i] = (byte)((runConfiguration_.Data & 2019) * i);
+        output[i] = (byte)((runConfiguration.Data & 2019) * i);
       }
 
       await t;

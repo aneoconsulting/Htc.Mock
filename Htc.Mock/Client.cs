@@ -30,31 +30,31 @@ namespace Htc.Mock
   [PublicAPI]
   public class Client
   {
-    private readonly IGridClient gridClient_;
-    private readonly IDataClient dataClient_;
+    private readonly IGridClient gridClient;
+    private readonly IDataClient dataClient;
 
     public Client(IGridClient gridClient, IDataClient dataClient)
     {
-      gridClient_       = gridClient;
-      dataClient_       = dataClient;
+      this.gridClient = gridClient;
+      this.dataClient = dataClient;
     }
 
     [PublicAPI]
     public void Start(RunConfiguration runConfiguration)
     {
-      var session = gridClient_.CreateSession();
+      var session = gridClient.CreateSession();
 
       var request = runConfiguration.DefaultHeadRequest();
 
-      var taskId = gridClient_.SubmitTask(session, DataAdapter.BuildPayload(runConfiguration, request));
+      var taskId = gridClient.SubmitTask(session, DataAdapter.BuildPayload(runConfiguration, request));
 
-      gridClient_.WaitSubtasksCompletion(taskId);
+      gridClient.WaitSubtasksCompletion(taskId);
 
       // the mock project has been designed so that output contains dummy data
-      _ = gridClient_.GetResult(taskId);
+      _ = gridClient.GetResult(taskId);
 
       // the proper result is stored in the data cache
-      var result = dataClient_.GetData(request.Id);
+      var result = dataClient.GetData(request.Id);
 
       Console.WriteLine($"Final result is {Encoding.ASCII.GetString(result)}");
       Console.WriteLine($"If run with configuration = Medium, result should be Aggregate_3926158863_result");

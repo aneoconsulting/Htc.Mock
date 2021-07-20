@@ -30,23 +30,23 @@ namespace Htc.Mock
   [PublicAPI]
   public class GridWorker
   {
-    private readonly IRequestRunnerFactory requestRunnerFactory_;
+    private readonly IRequestRunnerFactory requestRunnerFactory;
 
-    private IRequestRunner requestRunner_  = null;
-    private string         currentSession_ = string.Empty;
+    private IRequestRunner requestRunner  = null;
+    private string         currentSession = string.Empty;
     
-    public GridWorker(IRequestRunnerFactory requestRunnerFactory) => requestRunnerFactory_ = requestRunnerFactory;
+    public GridWorker(IRequestRunnerFactory requestRunnerFactory) => this.requestRunnerFactory = requestRunnerFactory;
 
     public byte[] Execute(string session, string taskId, byte[] payload)
     {
       var readPayload = DataAdapter.ReadPayload(payload);
-      if (session != currentSession_)
+      if (session != currentSession)
       {
-        requestRunner_  = requestRunnerFactory_.Create(readPayload.Item1, session);
-        currentSession_ = session;
+        requestRunner  = requestRunnerFactory.Create(readPayload.Item1, session);
+        currentSession = session;
       }
 
-      return requestRunner_.ProcessRequest(readPayload.Item2, taskId);
+      return requestRunner.ProcessRequest(readPayload.Item2, taskId);
     }
   }
 }

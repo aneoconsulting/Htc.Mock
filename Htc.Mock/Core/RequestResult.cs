@@ -38,14 +38,14 @@ namespace Htc.Mock.Core
       Debug.Assert(!string.IsNullOrEmpty(result));
     }
 
-    public RequestResult(string requestId, IList<Request> subRequests)
+    public RequestResult(string requestId, IEnumerable<Request> subRequests)
       : this(requestId, false, string.Empty, subRequests, Array.Empty<byte>())
     {
       Debug.Assert(!string.IsNullOrEmpty(requestId));
       Debug.Assert(subRequests != null);
     }
 
-    private RequestResult(string requestId, bool hasResult, string result, IList<Request> subRequests, byte[] output)
+    private RequestResult(string requestId, bool hasResult, string result, IEnumerable<Request> subRequests, byte[] output)
     {
       Debug.Assert(!string.IsNullOrEmpty(requestId));
       Debug.Assert(subRequests != null);
@@ -76,7 +76,6 @@ namespace Htc.Mock.Core
     [NotNull]
     public string RequestId { get; }
 
-    [NotNull]
     public bool HasResult { get; }
 
     [NotNull]
@@ -86,7 +85,7 @@ namespace Htc.Mock.Core
     /// 
     /// </summary>
     [NotNull]
-    public IList<Request> SubRequests { get; }
+    public IEnumerable<Request> SubRequests { get; }
 
     /// <summary>
     /// Dummy data only used to force some data transfers

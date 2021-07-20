@@ -26,11 +26,11 @@ namespace Htc.Mock.RequestRunners
 {
   public class DelegateRequestRunnerFactory : IRequestRunnerFactory
   {
-    private Func<RunConfiguration, string, IRequestRunner> creator_;
+    private readonly Func<RunConfiguration, string, IRequestRunner> creator;
 
-    public DelegateRequestRunnerFactory(Func<RunConfiguration, string, IRequestRunner> creator) => creator_ = creator;
+    public DelegateRequestRunnerFactory(Func<RunConfiguration, string, IRequestRunner> creator) => this.creator = creator;
 
     /// <inheritdoc />
-    public IRequestRunner Create(RunConfiguration runConfiguration, string session) => creator_(runConfiguration, session);
+    public IRequestRunner Create(RunConfiguration runConfiguration, string session) => creator(runConfiguration, session);
   }
 }

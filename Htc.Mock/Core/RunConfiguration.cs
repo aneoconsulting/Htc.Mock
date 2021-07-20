@@ -45,7 +45,7 @@ namespace Htc.Mock.Core
     private const int NbSamples = 100000;
 
     [ProtoMember(1)]
-    private readonly int[] durationSamples_;
+    private readonly int[] durationSamples;
 
 
     public RunConfiguration(TimeSpan totalCalculationTime,
@@ -81,7 +81,7 @@ namespace Htc.Mock.Core
 
       var ran = new Random(seed);
 
-      durationSamples_ = Enumerable.Range(0, NbSamples)
+      durationSamples = Enumerable.Range(0, NbSamples)
                                    .Select(_ => (int) Beta.Sample(ran, MinDurationMs, AvgDurationMs, MaxDurationMs))
                                    .ToArray();
 
@@ -122,9 +122,9 @@ namespace Htc.Mock.Core
 
     public int GetTaskDurationMs(string taskId)
     {
-      Debug.Assert(durationSamples_ != null, nameof(durationSamples_) + " != null");
+      Debug.Assert(durationSamples != null, nameof(durationSamples) + " != null");
       var hash   = taskId.GetCryptoHashCode();
-      var result = durationSamples_[hash % NbSamples];
+      var result = durationSamples[hash % NbSamples];
       return result;
     }
 

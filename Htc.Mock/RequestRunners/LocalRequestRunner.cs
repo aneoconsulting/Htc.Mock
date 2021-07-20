@@ -94,26 +94,38 @@ namespace Htc.Mock.RequestRunners
           StartRequestProcessingEvent?.Invoke(request);
           var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
 
-          var subRequestsByDepsRq = result.SubRequests
-                                          .ToLookup(sr => !( sr is AggregationRequest));
 
-          SpawningRequestEvent?.Invoke(subRequestsByDepsRq[true].Count());
+          AggregationRequest aggregationRequest = null;
+
+          var dependencyRequests = result.SubRequests.Where(r =>
+                                                            {
+                                                              if (!(r is AggregationRequest ar))
+                                                                return true;
+
+                                                              aggregationRequest = ar;
+                                                              return false;
+                                                            });
 
           if (parallelRun)
           {
-            Parallel.ForEach(subRequestsByDepsRq[true], leafRequest => ProcessRequest(leafRequest, request.Id));
+            Parallel.ForEach(dependencyRequests,
+                             leafRequest =>
+                             {
+                               SpawningRequestEvent?.Invoke(1);
+                               ProcessRequest(leafRequest, request.Id);
+                             });
           }
           else
           {
-            foreach (var leafRequest in subRequestsByDepsRq[true])
+            foreach (var leafRequest in dependencyRequests)
+            {
+              SpawningRequestEvent?.Invoke(1);
               ProcessRequest(leafRequest, ParallelRun);
+            }
           }
 
-          var aggregationRequest = subRequestsByDepsRq[false].Single();
-
           SpawningRequestEvent?.Invoke(1);
-
-          ProcessRequest(aggregationRequest, false);
+          ProcessRequest(aggregationRequest, parallelRun);
 
           return results[request.Id];
         }

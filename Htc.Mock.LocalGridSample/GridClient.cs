@@ -31,18 +31,18 @@ namespace Htc.Mock.LocalGridSample
 {
   class GridClient : IGridClient
   {
-    private readonly ConcurrentDictionary<string, byte[]>                  resultStore_ = new();
-    private readonly ConcurrentDictionary<string, Task>                    statusStore_ = new();
-    private readonly GridWorker                                            gridWorker_;
-    private          int                                                   taskCount_;
-    private          int                                                   sessionCount_;
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> cancelSources_ = new();
-    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   subtasksLists_ = new();
-    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists_   = new();
+    private readonly ConcurrentDictionary<string, byte[]>                  resultStore = new();
+    private readonly ConcurrentDictionary<string, Task>                    statusStore = new();
+    private readonly GridWorker                                            gridWorker;
+    private          int                                                   taskCount;
+    private          int                                                   sessionCount;
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> cancelSources = new();
+    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   subtasksLists = new();
+    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists   = new();
 
 
     public GridClient(IDataClient dataClient)
-      => gridWorker_ = new(new DelegateRequestRunnerFactory((runConfiguration, session)
+      => gridWorker = new(new DelegateRequestRunnerFactory((runConfiguration, session)
                                                               => new DistributedRequestRunnerWithAggregation(dataClient,
                                                                                               this,
                                                                                               runConfiguration,
@@ -52,38 +52,38 @@ namespace Htc.Mock.LocalGridSample
                                                                                               smallOutput: true)));
 
     /// <inheritdoc />
-    public byte[] GetResult(string id) => resultStore_[id];
+    public byte[] GetResult(string id) => resultStore[id];
 
     /// <inheritdoc />
-    public void WaitCompletion(string id) => statusStore_[id].Wait();
+    public void WaitCompletion(string id) => statusStore[id].Wait();
 
     /// <inheritdoc />
     public void WaitSubtasksCompletion(string id)
     {
       WaitCompletion(id);
-      var subtasks = subtasksLists_[id];
+      var subtasks = subtasksLists[id];
       int nbSubtasks;
       do
       {
         nbSubtasks = subtasks.Count;
-        Task.WhenAll(subtasks.Select(s => statusStore_[s])).Wait();
-        subtasks = subtasksLists_[id];
+        Task.WhenAll(subtasks.Select(s => statusStore[s])).Wait();
+        subtasks = subtasksLists[id];
       } while (nbSubtasks != subtasks.Count);
     }
 
     /// <inheritdoc />
     public string SubmitTask(string session, byte[] payload)
     {
-      cancelSources_[session].Token.ThrowIfCancellationRequested();
+      cancelSources[session].Token.ThrowIfCancellationRequested();
 
-      var taskId = $"{session}_{Interlocked.Increment(ref taskCount_)}";
-      cancelSources_[taskId] = new CancellationTokenSource();
-      parentLists_[taskId]   = new ConcurrentBag<string>();
-      subtasksLists_[taskId] = new ConcurrentBag<string>();
+      var taskId = $"{session}_{Interlocked.Increment(ref taskCount)}";
+      cancelSources[taskId] = new CancellationTokenSource();
+      parentLists[taskId]   = new ConcurrentBag<string>();
+      subtasksLists[taskId] = new ConcurrentBag<string>();
 
-      var cts = CancellationTokenSource.CreateLinkedTokenSource(cancelSources_[taskId].Token, cancelSources_[session].Token);
+      var cts = CancellationTokenSource.CreateLinkedTokenSource(cancelSources[taskId].Token, cancelSources[session].Token);
 
-      statusStore_[taskId] = Task.Factory.StartNew(() => resultStore_[taskId] = gridWorker_.Execute(session, taskId, payload),
+      statusStore[taskId] = Task.Factory.StartNew(() => resultStore[taskId] = gridWorker.Execute(session, taskId, payload),
                                                    cts.Token);
 
       return taskId;
@@ -96,12 +96,12 @@ namespace Htc.Mock.LocalGridSample
     public string SubmitSubtask(string session, string parentId, byte[] payload)
     {
       var taskId = SubmitTask(session, payload);
-      parentLists_[taskId].Add(parentId);
+      parentLists[taskId].Add(parentId);
 
-      subtasksLists_[parentId].Add(taskId);
-      foreach (var parent in parentLists_[parentId])
+      subtasksLists[parentId].Add(taskId);
+      foreach (var parent in parentLists[parentId])
       {
-        subtasksLists_[parent].Add(taskId);
+        subtasksLists[parent].Add(taskId);
       }
 
       return taskId;
@@ -141,8 +141,8 @@ namespace Htc.Mock.LocalGridSample
     /// <inheritdoc />
     public string CreateSession()
     {
-      var sessionId = $"Session-{Interlocked.Increment(ref sessionCount_)}";
-      cancelSources_[sessionId] = new CancellationTokenSource();
+      var sessionId = $"Session-{Interlocked.Increment(ref sessionCount)}";
+      cancelSources[sessionId] = new CancellationTokenSource();
 
       return sessionId;
     }
@@ -150,17 +150,17 @@ namespace Htc.Mock.LocalGridSample
     /// <inheritdoc />
     public void OpenSession(string sessionId)
     {
-      cancelSources_.TryAdd(sessionId, new CancellationTokenSource());
+      cancelSources.TryAdd(sessionId, new CancellationTokenSource());
     }
 
     /// <inheritdoc />
-    public void CancelSession(string session) => cancelSources_[session].Cancel();
+    public void CancelSession(string session) => cancelSources[session].Cancel();
 
     /// <inheritdoc />
     public void CancelTask(string taskId)
     {
-      cancelSources_[taskId].Cancel();
-      foreach (var subtask in subtasksLists_[taskId])
+      cancelSources[taskId].Cancel();
+      foreach (var subtask in subtasksLists[taskId])
       {
         CancelTask(subtask);
       }
