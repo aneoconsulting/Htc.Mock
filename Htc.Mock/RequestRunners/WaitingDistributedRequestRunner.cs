@@ -57,70 +57,70 @@ namespace Htc.Mock.RequestRunners
       this.gridClient       = gridClient;
       this.session          = session;
       this.waitDependencies = waitDependencies;
-
-      this.gridClient.OpenSession(this.session);
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
     {
-
-      switch (request)
+      using (gridClient.OpenSession(session))
       {
-        case FinalRequest finalRequest:
+        switch (request)
         {
-          var result = requestProcessor.GetResult(finalRequest, Array.Empty<string>());
-          dataClient.StoreData(request.Id, Encoding.ASCII.GetBytes(result.Result));
+          case FinalRequest finalRequest:
+          {
+            var result = requestProcessor.GetResult(finalRequest, Array.Empty<string>());
+            dataClient.StoreData(request.Id, Encoding.ASCII.GetBytes(result.Result));
 
-          return result.Output;
+            return result.Output;
+          }
+
+          case AggregationRequest aggregationRequest:
+          {
+            var result = requestProcessor.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
+                                                                                          .Select(dataClient.GetData)
+                                                                                          .Select(Encoding.ASCII.GetString)
+                                                                                          .ToList());
+            var data = Encoding.ASCII.GetBytes(result.Result);
+            dataClient.StoreData(aggregationRequest.Id, data);
+            dataClient.StoreData(aggregationRequest.ParentId, data);
+            
+            return result.Output;
+          }
+
+          case ComputeRequest computeRequest:
+          {
+            gridClient.WaitSubtasksCompletion(taskId);
+            var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
+
+            var subRequestsByDepsRq = result.SubRequests
+                                            .ToLookup(sr => !(sr is AggregationRequest));
+
+
+            var subtasksPayload = subRequestsByDepsRq[true].Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
+            var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
+
+            var aggregationRequest = subRequestsByDepsRq[false].Cast<AggregationRequest>()
+                                                              .Single();
+
+            if (waitDependencies)
+              gridClient.WaitDependenciesAndSubmitSubtask(session,
+                                                          taskId,
+                                                          DataAdapter.BuildPayload(runConfiguration,
+                                                                                    aggregationRequest),
+                                                          subtaskIds);
+            else
+              gridClient.SubmitSubtaskWithDependencies(session,
+                                                        taskId,
+                                                        DataAdapter.BuildPayload(runConfiguration,
+                                                                                aggregationRequest),
+                                                        subtaskIds.ToList());
+
+            return result.Output;
+          }
+
+          default:
+            throw new ArgumentException($"{typeof(Request)} != supported.");
+
         }
-
-        case AggregationRequest aggregationRequest:
-        {
-          var result = requestProcessor.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
-                                                                                         .Select(dataClient.GetData)
-                                                                                         .Select(Encoding.ASCII.GetString)
-                                                                                         .ToList());
-          var data = Encoding.ASCII.GetBytes(result.Result);
-          dataClient.StoreData(aggregationRequest.Id, data);
-          dataClient.StoreData(aggregationRequest.ParentId, data);
-          
-          return result.Output;
-        }
-
-        case ComputeRequest computeRequest:
-        {
-          gridClient.WaitSubtasksCompletion(taskId);
-          var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
-
-          var subRequestsByDepsRq = result.SubRequests
-                                          .ToLookup(sr => !(sr is AggregationRequest));
-
-
-          var subtasksPayload = subRequestsByDepsRq[true].Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
-          var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
-
-          var aggregationRequest = subRequestsByDepsRq[false].Cast<AggregationRequest>()
-                                                             .Single();
-
-          if (waitDependencies)
-            gridClient.WaitDependenciesAndSubmitSubtask(session,
-                                                         taskId,
-                                                         DataAdapter.BuildPayload(runConfiguration,
-                                                                                  aggregationRequest),
-                                                         subtaskIds);
-          else
-            gridClient.SubmitSubtaskWithDependencies(session,
-                                                      taskId,
-                                                      DataAdapter.BuildPayload(runConfiguration,
-                                                                               aggregationRequest),
-                                                      subtaskIds.ToList());
-
-          return result.Output;
-        }
-
-        default:
-          throw new ArgumentException($"{typeof(Request)} != supported.");
-
       }
     }
   }

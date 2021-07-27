@@ -64,66 +64,67 @@ namespace Htc.Mock.RequestRunners
       this.dataClient       = dataClient;
       this.gridClient       = gridClient;
       this.session          = session;
-
-      this.gridClient.OpenSession(this.session);
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
     {
-      switch (request)
+      using (gridClient.OpenSession(session))
       {
-        case FinalRequest finalRequest:
+        switch (request)
         {
-          var result = requestProcessor.GetResult(finalRequest, Array.Empty<string>());
-          dataClient.StoreData(request.Id, Encoding.ASCII.GetBytes(result.Result));
-
-          return result.Output;
-        }
-
-        case AggregationRequest aggregationRequest:
-        {
-          var result = requestProcessor.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
-                                                                                         .Select(dataClient.GetData)
-                                                                                         .Select(Encoding.ASCII.GetString)
-                                                                                         .ToList());
-          var data = Encoding.ASCII.GetBytes(result.Result);
-          dataClient.StoreData(aggregationRequest.Id, data);
-          dataClient.StoreData(aggregationRequest.ParentId, data);
-
-          return result.Output;
-        }
-
-        case ComputeRequest computeRequest:
-        {
-          var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
-
-
-          AggregationRequest aggregationRequest = null;
-
-          var dependencyRequests = result.SubRequests.Where(r =>
-                                                            {
-                                                              if (!(r is AggregationRequest ar))
-                                                                return true;
-
-                                                              aggregationRequest = ar;
-                                                              return false;
-                                                            });
-
-
-          var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
-          var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
-
-          // We split the waiting in two to ease the scheduling by the parallel runtime
-          foreach (var subtaskId in subtaskIds)
+          case FinalRequest finalRequest:
           {
-            gridClient.WaitSubtasksCompletion(subtaskId);
+            var result = requestProcessor.GetResult(finalRequest, Array.Empty<string>());
+            dataClient.StoreData(request.Id, Encoding.ASCII.GetBytes(result.Result));
+
+            return result.Output;
           }
 
-          return ProcessRequest(aggregationRequest, session);
-        }
+          case AggregationRequest aggregationRequest:
+          {
+            var result = requestProcessor.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
+                                                                                          .Select(dataClient.GetData)
+                                                                                          .Select(Encoding.ASCII.GetString)
+                                                                                          .ToList());
+            var data = Encoding.ASCII.GetBytes(result.Result);
+            dataClient.StoreData(aggregationRequest.Id, data);
+            dataClient.StoreData(aggregationRequest.ParentId, data);
 
-        default:
-          throw new ArgumentException($"{typeof(Request)} != supported.");
+            return result.Output;
+          }
+
+          case ComputeRequest computeRequest:
+          {
+            var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
+
+
+            AggregationRequest aggregationRequest = null;
+
+            var dependencyRequests = result.SubRequests.Where(r =>
+                                                              {
+                                                                if (!(r is AggregationRequest ar))
+                                                                  return true;
+
+                                                                aggregationRequest = ar;
+                                                                return false;
+                                                              });
+
+
+            var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
+            var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
+
+            // We split the waiting in two to ease the scheduling by the parallel runtime
+            foreach (var subtaskId in subtaskIds)
+            {
+              gridClient.WaitSubtasksCompletion(subtaskId);
+            }
+
+            return ProcessRequest(aggregationRequest, session);
+          }
+
+          default:
+            throw new ArgumentException($"{typeof(Request)} != supported.");
+        }
       }
     }
   }

@@ -148,9 +148,10 @@ namespace Htc.Mock.LocalGridSample
     }
 
     /// <inheritdoc />
-    public void OpenSession(string sessionId)
+    public IDisposable OpenSession(string sessionId)
     {
       cancelSources.TryAdd(sessionId, new CancellationTokenSource());
+      return null;
     }
 
     /// <inheritdoc />

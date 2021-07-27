@@ -40,14 +40,14 @@ namespace Htc.Mock
     byte[] GetResult(string id);
 
     /// <summary>
-    /// Waits for the completion of a task processing and fetches the corresponding results.
+    /// Waits for the completion of a task processing .
     /// </summary>
     /// <param name="id">Id of the task to wait for.</param>
     /// <returns>The result of the task</returns>
     void WaitCompletion(string id);
 
     /// <summary>
-    /// Waits for the completion of a task processing and fetches the corresponding results.
+    /// Waits for the completion of a task and all of its subtasks.
     /// </summary>
     /// <param name="id">Id of the task to wait for.</param>
     /// <returns>The result of the task</returns>
@@ -92,7 +92,7 @@ namespace Htc.Mock
 
     string CreateSession();
 
-    void OpenSession(string sessionId);
+    IDisposable OpenSession(string sessionId);
 
     void CancelSession(string session);
 
@@ -136,7 +136,7 @@ namespace Htc.Mock
     {
       foreach (var dependency in dependencies)
       {
-        client.WaitCompletion(dependency);
+        client.WaitSubtasksCompletion(dependency);
       }
 
       return client.SubmitTask(session, payload);
