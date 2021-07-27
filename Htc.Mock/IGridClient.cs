@@ -110,58 +110,6 @@ namespace Htc.Mock
     /// <returns>The id of the task corresponding to the <c>Task</c></returns>
     public static string SubmitTask(this IGridClient client, string session, byte[] payload) 
       => client.SubmitTasks(session, new[] {payload}).Single();
-
-
-    /// <summary>
-    /// Submit a new <c>Task</c> to be processed
-    /// </summary>
-    /// <param name="session">The session to which submit the new <c>task</c></param>
-    /// <param name="parentId"></param>
-    /// <param name="payload">The payload of the task to process</param>
-    /// <returns>The id of the task corresponding to the <c>Task</c></returns>
-    public static string SubmitSubtask(this IGridClient client, string session, string parentId, byte[] payload)
-      => client.SubmitSubtask(session, parentId, new[] { payload }).Single();
-
-    /// <summary>
-    /// Wait for the dependencies to be completed and then submits a new task
-    /// </summary>
-    /// <param name="client">The <c>IGridClient</c> implementation used to communicate with the grid</param>
-    /// <param name="session">The session to which submit the new <c>task</c></param>
-    /// <param name="payload">The payload of the task to process</param>
-    /// <param name="dependencies">The list of dependencies that have to be processed before start processing <c>task</c></param>
-    public static string WaitDependenciesAndSubmitTask(this IGridClient    client,
-                                                       string              session,
-                                                       byte[]              payload,
-                                                       IEnumerable<string> dependencies)
-    {
-      foreach (var dependency in dependencies)
-      {
-        client.WaitSubtasksCompletion(dependency);
-      }
-
-      return client.SubmitTask(session, payload);
-    }
-
-    /// <summary>
-    /// Wait for the dependencies to be completed and then submits a new task
-    /// </summary>
-    /// <param name="client">The <c>IGridClient</c> implementation used to communicate with the grid</param>
-    /// <param name="session">The session to which submit the new <c>task</c></param>
-    /// <param name="parentId"></param>
-    /// <param name="payload">The payload of the task to process</param>
-    /// <param name="dependencies">The list of dependencies that have to be processed before start processing <c>task</c></param>
-    public static string WaitDependenciesAndSubmitSubtask(this IGridClient    client,
-                                                          string              session,
-                                                          string              parentId,
-                                                          byte[]              payload,
-                                                          IEnumerable<string> dependencies)
-    {
-      foreach (var dependency in dependencies)
-      {
-        client.WaitSubtasksCompletion(dependency);
-      }
-
-      return client.SubmitSubtask(session, parentId, payload);
-    }
+    
   }
 }

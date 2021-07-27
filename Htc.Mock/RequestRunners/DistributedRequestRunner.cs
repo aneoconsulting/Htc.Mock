@@ -45,7 +45,6 @@ namespace Htc.Mock.RequestRunners
     /// <param name="gridClient"></param>
     /// <param name="runConfiguration">Defines the properties of the current execution.
     /// It is assumed to be a session data.</param>
-    /// <param name="waitDependencies"></param>
     /// <param name="fastCompute">Defines if the execution time should be emulated.
     /// It is assumed to be a deployment configuration.</param>
     /// <param name="useLowMem">Defines if the memory consumption should be emulated.
@@ -58,7 +57,6 @@ namespace Htc.Mock.RequestRunners
                                     IGridClient gridClient,
                                     RunConfiguration runConfiguration,
                                     string session,
-                                    bool waitDependencies = false,
                                     bool fastCompute = false,
                                     bool useLowMem = false,
                                     bool smallOutput = false)
@@ -68,7 +66,6 @@ namespace Htc.Mock.RequestRunners
       this.dataClient       = dataClient;
       this.gridClient       = gridClient;
       this.session          = session;
-      this.waitDependencies = waitDependencies;
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
@@ -116,18 +113,11 @@ namespace Htc.Mock.RequestRunners
             var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
             var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
 
-            if (waitDependencies)
-              gridClient.WaitDependenciesAndSubmitSubtask(session,
-                                                          taskId,
-                                                          DataAdapter.BuildPayload(runConfiguration,
-                                                                                    aggregationRequest),
-                                                          subtaskIds);
-            else
-              gridClient.SubmitSubtaskWithDependencies(session,
-                                                        taskId,
-                                                        DataAdapter.BuildPayload(runConfiguration,
-                                                                                aggregationRequest),
-                                                        subtaskIds.ToList());
+            gridClient.SubmitSubtaskWithDependencies(session,
+                                                      taskId,
+                                                      DataAdapter.BuildPayload(runConfiguration,
+                                                                              aggregationRequest),
+                                                      subtaskIds.ToList());
 
             return result.Output;
           }

@@ -113,13 +113,13 @@ namespace Htc.Mock.RequestRunners
             var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
             var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
 
-            // We split the waiting in two to ease the scheduling by the parallel runtime
             foreach (var subtaskId in subtaskIds)
             {
-              gridClient.WaitSubtasksCompletion(subtaskId);
+              // No need to wait for subtasks since the tasks that generate subtasking will wait for its children.
+              gridClient.WaitCompletion(subtaskId);
             }
 
-            return ProcessRequest(aggregationRequest, session);
+            return ProcessRequest(aggregationRequest, taskId);
           }
 
           default:
