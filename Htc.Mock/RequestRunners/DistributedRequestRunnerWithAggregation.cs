@@ -111,7 +111,9 @@ namespace Htc.Mock.RequestRunners
 
 
             var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
-            var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
+
+            // No need to use SubmitSubtasks because we wait for them just after. I.e., the scheduler has nothing to do.
+            var subtaskIds = gridClient.SubmitTasks(session, subtasksPayload);
 
             foreach (var subtaskId in subtaskIds)
             {

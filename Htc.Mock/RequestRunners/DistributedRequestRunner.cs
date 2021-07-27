@@ -57,6 +57,7 @@ namespace Htc.Mock.RequestRunners
                                     IGridClient gridClient,
                                     RunConfiguration runConfiguration,
                                     string session,
+                                    bool waitDependencies = false,
                                     bool fastCompute = false,
                                     bool useLowMem = false,
                                     bool smallOutput = false)
@@ -66,6 +67,7 @@ namespace Htc.Mock.RequestRunners
       this.dataClient       = dataClient;
       this.gridClient       = gridClient;
       this.session          = session;
+      this.waitDependencies = waitDependencies;
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
@@ -111,7 +113,7 @@ namespace Htc.Mock.RequestRunners
 
 
             var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
-            var subtaskIds      = gridClient.SubmitTasks(session, subtasksPayload);
+            var subtaskIds      = gridClient.SubmitSubtasks(session, taskId, subtasksPayload);
 
             gridClient.SubmitSubtaskWithDependencies(session,
                                                       taskId,

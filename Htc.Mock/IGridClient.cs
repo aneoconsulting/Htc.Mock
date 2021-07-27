@@ -68,7 +68,7 @@ namespace Htc.Mock
     /// <param name="parentId"></param>
     /// <param name="payloads">The payloads of the tasks to process</param>
     /// <returns>The ids of the tasks corresponding to the <c>Tasks</c></returns>
-    IEnumerable<string> SubmitSubtask(string session, string parentId, IEnumerable<byte[]> payloads);
+    IEnumerable<string> SubmitSubtasks(string session, string parentId, IEnumerable<byte[]> payloads);
 
     /// <summary>
     /// Submit a new <c>Task</c> to be processed after completion of its dependencies
@@ -110,6 +110,15 @@ namespace Htc.Mock
     /// <returns>The id of the task corresponding to the <c>Task</c></returns>
     public static string SubmitTask(this IGridClient client, string session, byte[] payload) 
       => client.SubmitTasks(session, new[] {payload}).Single();
+
+    /// <summary>
+    /// Submit a new <c>Task</c> to be processed
+    /// </summary>
+    /// <param name="session">The session to which submit the new <c>task</c></param>
+    /// <param name="payload">The payload of the task to process</param>
+    /// <returns>The id of the task corresponding to the <c>Task</c></returns>
+    public static string SubmitSubtask(this IGridClient client, string session, string parentId, byte[] payload) 
+      => client.SubmitSubtasks(session, parentId, new[] {payload}).Single();
     
   }
 }
