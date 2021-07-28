@@ -11,9 +11,9 @@
     <Copyright>Copyright (c) 2021-2021 ANEO.</Copyright>
     <Authors>Wilfried Kirschenmann</Authors>
     <Company>ANEO</Company>
-    <AssemblyVersion>1.0.10.2</AssemblyVersion>
-    <FileVersion>1.0.10.2</FileVersion>
-    <Version>1.0.10</Version>
+    <AssemblyVersion>1.0.11.2</AssemblyVersion>
+    <FileVersion>1.0.11.2</FileVersion>
+    <Version>1.0.11</Version>
     <WarningLevel>5</WarningLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>

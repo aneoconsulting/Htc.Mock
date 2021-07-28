@@ -114,7 +114,9 @@ namespace Htc.Mock
     /// <summary>
     /// Submit a new <c>Task</c> to be processed
     /// </summary>
+    /// <param name="client"></param>
     /// <param name="session">The session to which submit the new <c>task</c></param>
+    /// <param name="parentId"></param>
     /// <param name="payload">The payload of the task to process</param>
     /// <returns>The id of the task corresponding to the <c>Task</c></returns>
     public static string SubmitSubtask(this IGridClient client, string session, string parentId, byte[] payload) 

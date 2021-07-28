@@ -111,6 +111,9 @@ namespace Htc.Mock.Core
       var targetNbRq = Math.Max(2, (int)Math.Pow(request.NbSubrequests, 1.0 / request.Depth));
       if (request.NbSubrequests - targetNbRq < 2)
         targetNbRq = request.NbSubrequests;
+
+      Console.WriteLine($"ComputeSubRequests: Will generate {targetNbRq} subrequests.");
+
       var remainingRequests = request.NbSubrequests - targetNbRq;
 
       var subRequestIds = new List<string>(targetNbRq);
@@ -135,6 +138,10 @@ namespace Htc.Mock.Core
 
         if (remainingRequests - nbSubReq < 2)
           nbSubReq = remainingRequests;
+        else
+        {
+          nbSubReq = 0;
+        }
 
         var subrequestId = $"{request.Id}_{i}";
         subRequestIds.Add(subrequestId);
