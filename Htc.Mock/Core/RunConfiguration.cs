@@ -85,15 +85,15 @@ namespace Htc.Mock.Core
                                    .Select(_ => (int) Beta.Sample(ran, MinDurationMs, AvgDurationMs, MaxDurationMs))
                                    .ToArray();
 
-      Console.WriteLine($"{nameof(TotalCalculationTime)}={TotalCalculationTime}");
-      Console.WriteLine($"{nameof(TotalNbSubTasks)}={TotalNbSubTasks}");
-      Console.WriteLine($"{nameof(Data)}={Data}");
-      Console.WriteLine($"{nameof(Memory)}={Memory}");
-      Console.WriteLine($"{nameof(SubTasksLevels)}={SubTasksLevels}");
-      Console.WriteLine($"{nameof(AvgDurationMs)}={AvgDurationMs}");
-      Console.WriteLine($"{nameof(MinDurationMs)}={MinDurationMs}");
-      Console.WriteLine($"{nameof(MaxDurationMs)}={MaxDurationMs}");
-      Console.WriteLine($"{nameof(seed)}={seed}");
+      Console.WriteLine($"[Htc.Mock] {nameof(TotalCalculationTime)}={TotalCalculationTime}");
+      Console.WriteLine($"[Htc.Mock] {nameof(TotalNbSubTasks)}={TotalNbSubTasks}");
+      Console.WriteLine($"[Htc.Mock] {nameof(Data)}={Data}");
+      Console.WriteLine($"[Htc.Mock] {nameof(Memory)}={Memory}");
+      Console.WriteLine($"[Htc.Mock] {nameof(SubTasksLevels)}={SubTasksLevels}");
+      Console.WriteLine($"[Htc.Mock] {nameof(AvgDurationMs)}={AvgDurationMs}");
+      Console.WriteLine($"[Htc.Mock] {nameof(MinDurationMs)}={MinDurationMs}");
+      Console.WriteLine($"[Htc.Mock] {nameof(MaxDurationMs)}={MaxDurationMs}");
+      Console.WriteLine($"[Htc.Mock] {nameof(seed)}={seed}");
     }
 
     [ProtoMember(2)]

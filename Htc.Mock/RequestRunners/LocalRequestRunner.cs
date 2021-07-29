@@ -65,7 +65,7 @@ namespace Htc.Mock.RequestRunners
 
           if (!results.TryAdd(request.Id, result.Result))
           {
-            Console.WriteLine("Result was already written.");
+            Console.WriteLine("[Htc.Mock] Result was already written.");
           }
 
           return result.Result;
@@ -79,11 +79,11 @@ namespace Htc.Mock.RequestRunners
                                                                                          .ToList());
           if (!results.TryAdd(aggregationRequest.Id, result.Result))
           {
-            Console.WriteLine("Result was already written.");
+            Console.WriteLine("[Htc.Mock]  was already written.");
           }          
           if (!results.TryAdd(aggregationRequest.ParentId, result.Result))
           {
-            Console.WriteLine("Result was already written.");
+            Console.WriteLine("[Htc.Mock] Result was already written.");
           }
 
           return result.Result;

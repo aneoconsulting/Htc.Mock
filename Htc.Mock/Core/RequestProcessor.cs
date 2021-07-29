@@ -59,7 +59,7 @@ namespace Htc.Mock.Core
 
     protected static RequestResult ComputeResult(AggregationRequest request, IEnumerable<string> inputs)
     {
-      Console.WriteLine($"{nameof(ComputeRequest)}: Processing a AggregationRequest.");
+      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: Processing a AggregationRequest.");
       Debug.Assert(inputs != null);
 
       var nbInputs   = 0;
@@ -83,7 +83,7 @@ namespace Htc.Mock.Core
 
     protected static RequestResult ComputeResult(FinalRequest request, IEnumerable<string> inputs)
     {
-      Console.WriteLine($"{nameof(ComputeRequest)}: Processing a FinalRequest.");
+      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: Processing a FinalRequest.");
       var inputList = inputs.ToList();
       if (inputList.Any())
         throw new
@@ -94,7 +94,7 @@ namespace Htc.Mock.Core
 
     protected static RequestResult ComputeResult(ComputeRequest request, IEnumerable<string> inputs)
     {
-      Console.WriteLine($"{nameof(ComputeRequest)}: Processing a ComputeRequest (it will generate subrequests).");
+      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: Processing a ComputeRequest (it will generate subrequests).");
       var inputList = inputs.ToList();
       if (inputList.Any())
         throw new
@@ -112,7 +112,7 @@ namespace Htc.Mock.Core
       if (request.NbSubrequests - targetNbRq < 2)
         targetNbRq = request.NbSubrequests;
 
-      Console.WriteLine($"ComputeSubRequests: Will generate {targetNbRq} subrequests.");
+      Console.WriteLine($"[Htc.Mock] ComputeSubRequests: Will generate {targetNbRq} subrequests.");
 
       var remainingRequests = request.NbSubrequests - targetNbRq;
 
@@ -184,7 +184,7 @@ namespace Htc.Mock.Core
                                           request.Depth - 1,
                                           subRequestIds);
 
-      Console.WriteLine($"{nameof(ComputeRequest)}: {subRequestIds.Count + 1} subrequests generated.");
+      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: {subRequestIds.Count + 1} subrequests generated.");
     }
 
     protected static RequestResult ComputeResultDispatch(Request request, IEnumerable<string> inputs)

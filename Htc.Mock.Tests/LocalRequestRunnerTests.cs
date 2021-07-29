@@ -60,10 +60,10 @@ namespace Htc.Mock.Tests
       nbProcessedTask      = localNbProcessedTasks;
       nbSubTasks           = localNbSubTasks;
 
-      Console.WriteLine($"{nameof(nbProcessedTask)}={nbProcessedTask}");
-      Console.WriteLine($"{nameof(nbSubTasks)}={nbSubTasks}");
-      Console.WriteLine($"{nameof(totalCalculationTime)}={totalCalculationTime}");
-      Console.WriteLine($"{nameof(result)}={result}");
+      Console.WriteLine($"[Htc.Mock] {nameof(nbProcessedTask)}={nbProcessedTask}");
+      Console.WriteLine($"[Htc.Mock] {nameof(nbSubTasks)}={nbSubTasks}");
+      Console.WriteLine($"[Htc.Mock] {nameof(totalCalculationTime)}={totalCalculationTime}");
+      Console.WriteLine($"[Htc.Mock] {nameof(result)}={result}");
 
       Assert.AreEqual(nbSubTasks + 1, nbProcessedTask);
       Assert.AreEqual(config.TotalNbSubTasks, nbSubTasks);

@@ -42,9 +42,9 @@ namespace Htc.Mock.Tests
 
       var average = (int) samples.Average();
 
-      Console.WriteLine($"min={samples.Min()}");
-      Console.WriteLine($"max={samples.Max()}");
-      Console.WriteLine($"avg={average}");
+      Console.WriteLine($"[Htc.Mock] min={samples.Min()}");
+      Console.WriteLine($"[Htc.Mock] max={samples.Max()}");
+      Console.WriteLine($"[Htc.Mock] avg={average}");
 
       Assert.LessOrEqual((int)(100 * 0.98), average);
       Assert.GreaterOrEqual((int)(100 * 1.02), average);

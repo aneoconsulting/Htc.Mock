@@ -56,8 +56,8 @@ namespace Htc.Mock
       // the proper result is stored in the data cache
       var result = dataClient.GetData(request.Id);
 
-      Console.WriteLine($"Final result is {Encoding.ASCII.GetString(result)}");
-      Console.WriteLine($"If run with configuration = Medium, result should be Aggregate_3926158863_result");
+      Console.WriteLine($"[Htc.Mock] Final result is {Encoding.ASCII.GetString(result)}");
+      Console.WriteLine($"[Htc.Mock] If run with configuration = Medium, result should be Aggregate_3926158863_result");
     }
 
 
