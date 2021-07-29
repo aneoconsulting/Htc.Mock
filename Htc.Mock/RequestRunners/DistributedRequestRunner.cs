@@ -36,7 +36,6 @@ namespace Htc.Mock.RequestRunners
     private readonly IDataClient      dataClient;
     private readonly IGridClient      gridClient;
     private readonly string           session;
-    private readonly bool             waitDependencies;
 
     /// <summary>
     /// Builds a <c>DistributedRequestRunner</c>. The lifecycle of the object is meant to
@@ -57,7 +56,6 @@ namespace Htc.Mock.RequestRunners
                                     IGridClient gridClient,
                                     RunConfiguration runConfiguration,
                                     string session,
-                                    bool waitDependencies = false,
                                     bool fastCompute = false,
                                     bool useLowMem = false,
                                     bool smallOutput = false)
@@ -67,7 +65,6 @@ namespace Htc.Mock.RequestRunners
       this.dataClient       = dataClient;
       this.gridClient       = gridClient;
       this.session          = session;
-      this.waitDependencies = waitDependencies;
     }
 
     public byte[] ProcessRequest(Request request, string taskId)

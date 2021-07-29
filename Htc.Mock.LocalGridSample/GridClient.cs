@@ -108,7 +108,7 @@ namespace Htc.Mock.LocalGridSample
     }
 
     /// <inheritdoc />
-    public IEnumerable<string> SubmitSubtask(string session, string parentId, IEnumerable<byte[]> payloads) => payloads.Select(p => SubmitSubtask(session, parentId, p));
+    public IEnumerable<string> SubmitSubtasks(string session, string parentId, IEnumerable<byte[]> payloads) => payloads.Select(p => SubmitSubtask(session, parentId, p));
 
     /// <inheritdoc />
     public string SubmitTaskWithDependencies(string session, byte[] payload, IList<string> dependencies)
