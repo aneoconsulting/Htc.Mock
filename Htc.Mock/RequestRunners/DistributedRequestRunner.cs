@@ -56,7 +56,6 @@ namespace Htc.Mock.RequestRunners
     public DistributedRequestRunner(IDataClient dataClient,
                                     IGridClient gridClient,
                                     RunConfiguration runConfiguration,
-                                    string session,
                                     bool fastCompute = false,
                                     bool useLowMem = false,
                                     bool smallOutput = false)
@@ -65,13 +64,11 @@ namespace Htc.Mock.RequestRunners
       requestProcessor      = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration);
       this.dataClient       = dataClient;
       this.gridClient       = gridClient;
-      this.session          = session;
+      this.session          = gridClient.SessionId;
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
     {
-      using (gridClient.OpenSession(session))
-      {
         switch (request)
         {
           case FinalRequest finalRequest:
@@ -111,10 +108,9 @@ namespace Htc.Mock.RequestRunners
 
 
             var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
-            var subtaskIds      = gridClient.SubmitSubtasks(session, taskId, subtasksPayload);
+            var subtaskIds      = gridClient.SubmitSubtasks(taskId, subtasksPayload);
 
-            gridClient.SubmitSubtaskWithDependencies(session,
-                                                      taskId,
+            gridClient.SubmitSubtaskWithDependencies(taskId,
                                                       DataAdapter.BuildPayload(runConfiguration,
                                                                               aggregationRequest),
                                                       subtaskIds.ToList());
@@ -126,7 +122,6 @@ namespace Htc.Mock.RequestRunners
             throw new ArgumentException($"{typeof(Request)} != supported.");
 
         }
-      }
     }
   }
 }

@@ -28,6 +28,6 @@ namespace Htc.Mock.RequestRunners
   /// </summary>
   public interface IRequestRunnerFactory
   {
-    IRequestRunner Create(RunConfiguration runConfiguration, string session);
+    IRequestRunner Create(RunConfiguration runConfiguration);
   }
 }

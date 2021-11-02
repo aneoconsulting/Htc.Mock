@@ -43,11 +43,9 @@ namespace Htc.Mock
     [PublicAPI]
     public void Start(RunConfiguration runConfiguration)
     {
-      var session = gridClient.CreateSession();
-
       var request = runConfiguration.DefaultHeadRequest();
 
-      var taskId = gridClient.SubmitTask(session, DataAdapter.BuildPayload(runConfiguration, request));
+      var taskId = gridClient.SubmitTask(DataAdapter.BuildPayload(runConfiguration, request));
 
       gridClient.WaitSubtasksCompletion(taskId);
 
