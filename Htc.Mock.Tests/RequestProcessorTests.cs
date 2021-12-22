@@ -1,28 +1,26 @@
-﻿/* RequestProcessorTests.cs is part of the Htc.Mock.Tests solution.
-    
-   Copyright (c) 2021-2021 ANEO. 
-     W. Kirschenmann (https://github.com/wkirschenmann)
-  
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+﻿// RequestProcessorTests.cs is part of the Htc.Mock solution.
+// 
+// Copyright (c) 2021-2021 ANEO. All rights reserved.
+// * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-*/ 
-
-
-using System;
+using System.Collections.Concurrent;
 using System.Linq;
 
 using Htc.Mock.Core;
-using Htc.Mock.Utils;
+
+using Microsoft.Extensions.Logging.Abstractions;
 
 using NUnit.Framework;
 
@@ -40,79 +38,44 @@ namespace Htc.Mock.Tests
     [TestCase(false, true, false)]
     [TestCase(false, false, true)]
     [TestCase(false, false, false)]
-    public void GetResultHeadTest(bool fastCompute, bool useLowMem, bool smallOutput)
+    public void NoSubLevelTest(bool fastCompute, bool useLowMem, bool smallOutput)
     {
-      var configuration    = new RunConfiguration(new TimeSpan(0, 0, 1), 0, 1, 1, 0);
-      var requestProcessor = new RequestProcessor(fastCompute, useLowMem, smallOutput, configuration);
+      var configuration    = new RunConfiguration(new(0, 0, 1), 1, 1, 1, 0);
+      var requestProcessor = new RequestProcessor(fastCompute, useLowMem, smallOutput, configuration, NullLogger.Instance);
 
-      var request = new FinalRequest();
+      var request = configuration.BuildRequest(out _, NullLogger.Instance);
 
-      var requestResult = requestProcessor.GetResult(request, Array.Empty<string>());
+      var requestAnswer = requestProcessor.GetResult(request, new ConcurrentDictionary<string, string>());
 
-      Assert.IsTrue(requestResult.HasResult);
-      Assert.IsTrue(!requestResult.SubRequests.Any());
-      Assert.AreEqual("HeadId_result", requestResult.Result);
-      Assert.AreEqual("HeadId", requestResult.RequestId);
+      Assert.IsTrue(requestAnswer.Result.HasResult);
+      Assert.IsFalse(requestAnswer.SubRequests.Any());
+      Assert.AreEqual("1", requestAnswer.Result.Value);
     }
 
-    [Test]
-    [TestCase(true, true, true)]
-    [TestCase(true, true, false)]
-    [TestCase(true, false, true)]
-    [TestCase(true, false, false)]
-    [TestCase(false, true, true)]
-    [TestCase(false, true, false)]
-    [TestCase(false, false, true)]
-    [TestCase(false, false, false)]
-    public void GetResultAggregateTest(bool fastCompute, bool useLowMem, bool smallOutput)
-    {
-      var configuration    = new RunConfiguration(new TimeSpan(0, 0, 1), 2, 1, 1, 1, 1);
-      var requestProcessor = new RequestProcessor(fastCompute, useLowMem, smallOutput, configuration);
-
-      var deps     = new[] {"Id1", "Id2"};
-
-      var request = new AggregationRequest("AggregateTest", "ParentTest", 1, deps);
-
-      var inputs           = new[] {"Id1_result", "Id2_result"};
-
-      var requestResult = requestProcessor.GetResult(request, inputs);
-
-      var res = inputs.GetCryptoHashCode();
-
-      Assert.IsTrue(requestResult.HasResult);
-      Assert.IsTrue(! requestResult.SubRequests.Any());
-      Assert.AreEqual($"Aggregate_{res}_result", requestResult.Result);
-      Assert.AreEqual("AggregateTest", requestResult.RequestId);
-    }
 
     [Test]
-    [TestCase(true, true, true)]
-    [TestCase(true, true, false)]
-    [TestCase(true, false, true)]
-    [TestCase(true, false, false)]
-    [TestCase(false, true, true)]
-    [TestCase(false, true, false)]
-    [TestCase(false, false, true)]
-    [TestCase(false, false, false)]
-    public void GetResultNestedTest(bool fastCompute, bool useLowMem, bool smallOutput)
+    public void TwoLevelTest()
     {
-      var configuration    = new RunConfiguration(new TimeSpan(0, 0, 1), 2, 1, 1, 1);
-      var requestProcessor = new RequestProcessor(fastCompute, useLowMem, smallOutput, configuration);
+      var configuration    = new RunConfiguration(new(0, 0, 1), 1, 1, 1, 1);
+      var requestProcessor = new RequestProcessor(true, true, true, configuration, NullLogger.Instance);
 
-      var request = new ComputeRequest("NestTest", 1, 2);
+      var request = new ComputeRequest("root", new(new(new[]
+                                                       {
+                                                         true,
+                                                         true,
+                                                         false,
+                                                         true,
+                                                         false,
+                                                         false,
+                                                       })));
 
-      var requestResult = requestProcessor.GetResult(request, Array.Empty<string>());
+      var requestAnswer = requestProcessor.GetResult(request, new ConcurrentDictionary<string, string>());
 
-      Assert.IsFalse(requestResult.HasResult);
-      Assert.AreEqual(2, requestResult.SubRequests.Count());
-      Assert.IsTrue(string.IsNullOrEmpty(requestResult.Result));
-      Assert.AreEqual($"NestTest_0", requestResult.SubRequests.First().Id);
-
-      // This task is an aggregation
-      Assert.IsInstanceOf<AggregationRequest>(requestResult.SubRequests.Skip(1).First());
-      Assert.IsTrue(((AggregationRequest)requestResult.SubRequests.Skip(1).First()).ResultIdsRequired.Count == 1);
-      var res = "NestTest_0_result".GetCryptoHashCode(); 
-      Assert.AreEqual($"Aggregate_{res}", requestResult.SubRequests.Skip(1).First().Id);
+      Assert.IsFalse(requestAnswer.Result.HasResult);
+      Assert.IsTrue(requestAnswer.SubRequests.Any());
+      Assert.AreEqual("root", requestAnswer.RequestId);
+      Assert.AreEqual(requestAnswer.SubRequests.Last().Id, requestAnswer.Result.Value);
+      Assert.AreEqual("root.2", requestAnswer.Result.Value);
     }
   }
 }
