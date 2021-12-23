@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Threading.Tasks;
+
 using Htc.Mock.Core;
 
 namespace Htc.Mock.RequestRunners
@@ -33,6 +35,6 @@ namespace Htc.Mock.RequestRunners
     /// <param name="request">The request to process</param>
     /// <returns>The result ot the request</returns>
     /// <param name="taskId"></param>
-    byte[] ProcessRequest(Request request, string taskId);
+    Task<byte[]> ProcessRequest(Request request, string taskId);
   }
 }

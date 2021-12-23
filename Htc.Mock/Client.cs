@@ -15,6 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Diagnostics;
+using System.Threading.Tasks;
+
 using Htc.Mock.Core;
 
 using JetBrains.Annotations;
@@ -39,31 +42,32 @@ namespace Htc.Mock
     public void Start(RunConfiguration runConfiguration)
     {
       logger_.LogInformation("Start new run with {configuration}", runConfiguration.ToString());
+      var watch = Stopwatch.StartNew();
 
-      var session = gridClient_.CreateSession();
-
-      logger_.LogInformation("Session name is {session}", session);
+      var sessionClient = gridClient_.CreateSession();
 
       var request = runConfiguration.BuildRequest(out var shape, logger_);
 
-      var taskId = gridClient_.SubmitTask(session, DataAdapter.BuildPayload(runConfiguration, request));
+      var taskId = sessionClient.SubmitTask(DataAdapter.BuildPayload(runConfiguration, request)).Result;
 
       logger_.LogInformation("Submitted root task {taskId}", taskId);
 
-      gridClient_.WaitSubtasksCompletion(taskId);
+      sessionClient.WaitSubtasksCompletion(taskId).Wait();
 
-      var rawResult = RequestResult.FromBytes(gridClient_.GetResult(taskId));
+      var rawResult = RequestResult.FromBytes(sessionClient.GetResult(taskId).Result);
       if (rawResult is null)
       {
         logger_.LogError("Could not read result. Are you sure that WaitSubtasksCompletion waits enough ?");
       }
       else
       {
-        while (!rawResult.HasResult) rawResult = RequestResult.FromBytes(gridClient_.GetResult(rawResult.Value));
+        while (!rawResult.HasResult) rawResult = RequestResult.FromBytes(sessionClient.GetResult(rawResult.Value).Result);
 
-        logger_.LogError("Final result is {result}", rawResult.Value);
-        logger_.LogError("Expected result is 1.{result}", string.Join(".", shape));
+        logger_.LogInformation("Final result is {result}", rawResult.Value);
+        logger_.LogInformation("Expected result is 1.{result}", string.Join(".", shape));
       }
+      watch.Stop();
+      logger_.LogInformation("Client was executed in {time}s", watch.Elapsed.TotalSeconds);
     }
 
 

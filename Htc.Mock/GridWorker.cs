@@ -15,6 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Threading.Tasks;
+
 using Htc.Mock.Core;
 using Htc.Mock.RequestRunners;
 
@@ -29,7 +32,6 @@ namespace Htc.Mock
   {
     private readonly ILogger<GridWorker>   logger_;
     private readonly IRequestRunnerFactory requestRunnerFactory_;
-    private          string                currentSession_ = string.Empty;
 
     private IRequestRunner requestRunner_;
 
@@ -39,17 +41,14 @@ namespace Htc.Mock
       logger_               = logger;
     }
 
-    public byte[] Execute(string session, string taskId, byte[] payload)
+    public Task<byte[]> Execute(string taskId, byte[] payload)
     {
       logger_.LogInformation("Start task {id}", taskId);
-      var readPayload = DataAdapter.ReadPayload(payload);
-      if (session != currentSession_)
-      {
-        requestRunner_  = requestRunnerFactory_.Create(readPayload.Item1, session);
-        currentSession_ = session;
-      }
+      var (runConfiguration, request) = DataAdapter.ReadPayload(payload);
+      
+      requestRunner_ = requestRunnerFactory_.Create(runConfiguration);
 
-      var output = requestRunner_.ProcessRequest(readPayload.Item2, taskId);
+      var output = requestRunner_.ProcessRequest(request, taskId);
       logger_.LogInformation("Completed task {id}", taskId);
       return output;
     }

@@ -18,8 +18,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Htc.Mock.Core;
+using Htc.Mock.Utils;
 
 using JetBrains.Annotations;
 
@@ -36,7 +38,6 @@ namespace Htc.Mock.RequestRunners
     private readonly ILogger<DistributedRequestRunner> logger_;
     private readonly RequestProcessor                  requestProcessor_;
     private readonly RunConfiguration                  runConfiguration_;
-    private readonly string                            session_;
 
     /// <summary>
     ///   Builds a <c>DistributedRequestRunner</c>. The lifecycle of the object is meant to
@@ -63,7 +64,6 @@ namespace Htc.Mock.RequestRunners
     /// <param name="session"></param>
     public DistributedRequestRunner([NotNull] IGridClient                       gridClient,
                                     [NotNull] RunConfiguration                  runConfiguration,
-                                    [NotNull] string                            session,
                                     [NotNull] ILogger<DistributedRequestRunner> logger,
                                     bool                                        fastCompute = false,
                                     bool                                        useLowMem   = false,
@@ -72,13 +72,12 @@ namespace Htc.Mock.RequestRunners
       runConfiguration_ = runConfiguration ?? throw new ArgumentNullException(nameof(runConfiguration));
       requestProcessor_ = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration, logger);
       gridClient_       = gridClient ?? throw new ArgumentNullException(nameof(gridClient));
-      session_          = session ?? throw new ArgumentNullException(nameof(session));
       logger_           = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public byte[] ProcessRequest(Request request, string taskId)
+    public async Task<byte[]> ProcessRequest(Request request, string taskId)
     {
-      using (gridClient_.OpenSession(session_))
+      using (var sessionClient = gridClient_.CreateSession())
       {
         logger_.BeginScope(new Dictionary<string, string>
                            {
@@ -89,18 +88,24 @@ namespace Htc.Mock.RequestRunners
 
         var inputs = request.Dependencies is null
                        ? new Dictionary<string, string>()
-                       : request.Dependencies
-                                .ToDictionary(id => id,
-                                              id =>
-                                              {
-                                                var rr = RequestResult.FromBytes(gridClient_.GetResult(id));
-                                                while (!rr.HasResult)
-                                                {
-                                                  rr = RequestResult.FromBytes(gridClient_.GetResult(rr.Value));
-                                                }
+                       : (await request.Dependencies
+                                       .Select(async id =>
+                                               {
+                                                 var rr = RequestResult.FromBytes(await sessionClient.GetResult(id));
+                                                 while (!rr.HasResult)
+                                                 {
+                                                   rr = RequestResult.FromBytes(await sessionClient.GetResult(rr.Value));
+                                                 }
 
-                                                return rr.Value;
-                                              });
+                                                 return new
+                                                        {
+                                                          Key = id,
+                                                          rr.Value
+                                                        };
+                                               })
+                                       .WhenAll()
+                         ).ToDictionary(pair => pair.Key,
+                                        pair => pair.Value);
 
         var res = requestProcessor_.GetResult(request, inputs);
 
@@ -114,8 +119,9 @@ namespace Htc.Mock.RequestRunners
           logger_.LogInformation("Will submit {count} new tasks", requests[true].Count());
           var readyRequests = requests[true];
 
-          var newIds = gridClient_.SubmitSubtasks(session_, taskId,
-                                                  readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)));
+          var newIds = await sessionClient.SubmitSubtasks(taskId,
+                                                          readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)))
+                                          .ToListAsync();
 
 
           idTranslation = new Dictionary<string, string>(readyRequests.Zip(newIds, (r, s) => new { Key = r.Id, Value = s })
@@ -143,7 +149,7 @@ namespace Htc.Mock.RequestRunners
             }
 
             idTranslation[req.Id] =
-              gridClient_.SubmitSubtaskWithDependencies(session_, taskId, DataAdapter.BuildPayload(runConfiguration_, req), newDeps);
+              await sessionClient.SubmitSubtaskWithDependencies(taskId, DataAdapter.BuildPayload(runConfiguration_, req), newDeps);
           }
         }
 

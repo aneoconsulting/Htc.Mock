@@ -44,8 +44,8 @@ namespace Htc.Mock.Core
 
       subtree.Encoding.Length += 2;
       for (var i = subtree.Encoding.Length - 2; i >= 1; i--) subtree.Encoding[i] = subtree.Encoding[i - 1];
-      subtree.Encoding[0]                           = true;
-      subtree.Encoding[subtree.Encoding.Length - 1] = false;
+      subtree.Encoding[0]  = true;
+      subtree.Encoding[^1] = false;
 
       return subtree;
     }

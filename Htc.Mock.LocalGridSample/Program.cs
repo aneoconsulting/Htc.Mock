@@ -33,9 +33,8 @@ namespace Htc.Mock.LocalGridSample
     public static void Main()
     {
       Log.Logger = new LoggerConfiguration()
+                  .MinimumLevel.Information()
                   .MinimumLevel.Override("Microsoft",
-                                         LogEventLevel.Warning)
-                  .MinimumLevel.Override("Htc.Mock",
                                          LogEventLevel.Warning)
                   .Enrich.FromLogContext()
                   .WriteTo.Console()
@@ -43,14 +42,20 @@ namespace Htc.Mock.LocalGridSample
 
       var loggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new SerilogLoggerProvider(Log.Logger)));
 
+      loggerFactory.CreateLogger(nameof(Program)).LogCritical("Critical:Hello Htc.Mock!");
+      loggerFactory.CreateLogger(nameof(Program)).LogError("Hello Htc.Mock!");
+      loggerFactory.CreateLogger(nameof(Program)).LogWarning("Hello Htc.Mock!");
+      loggerFactory.CreateLogger(nameof(Program)).LogInformation("Hello Htc.Mock!");
+      loggerFactory.CreateLogger(nameof(Program)).LogTrace("Hello Htc.Mock!");
 
-      // To provide a new client, one need to provide a gridClient
+
+      // To provide a new client, one need to provide a sessionClient
       var gridClient = new GridClient(loggerFactory);
 
       // Code below is standard.
       var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
 
-      client.Start(new(TimeSpan.FromSeconds(1), 5000, 1, 1, 5));
+      client.Start(new(TimeSpan.FromSeconds(1), 50, 1, 1, 5));
     }
   }
 }

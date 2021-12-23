@@ -54,7 +54,7 @@ namespace Htc.Mock.Core
 
       encoding_.Length++;
 
-      encoding_[encoding_.Length - 1] = a;
+      encoding_[^1] = a;
       return true;
     }
 

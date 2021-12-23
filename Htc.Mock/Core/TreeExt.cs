@@ -55,7 +55,7 @@ namespace Htc.Mock.Core
     public static IEnumerable<Tree> GetSubTrees(this Tree tree)
     {
       var builder = new TreeBuilder();
-      if (!tree.Encoding[0] || tree.Encoding[tree.Encoding.Length - 1])
+      if (!tree.Encoding[0] || tree.Encoding[^1])
         throw new ArgumentException("Tree coding must start with a 1 and finish with a 0", nameof(tree));
 
       if (tree.Encoding.Length > 2)
