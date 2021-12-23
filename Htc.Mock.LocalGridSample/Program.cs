@@ -32,21 +32,26 @@ namespace Htc.Mock.LocalGridSample
   {
     public static void Main()
     {
+
       Log.Logger = new LoggerConfiguration()
-                  .MinimumLevel.Information()
-                  .MinimumLevel.Override("Microsoft",
-                                         LogEventLevel.Warning)
+                  .MinimumLevel.Warning()
                   .Enrich.FromLogContext()
                   .WriteTo.Console()
                   .CreateLogger();
 
-      var loggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new SerilogLoggerProvider(Log.Logger)));
+      var loggerFactory = LoggerFactory.Create(builder =>
+                           {
+                             builder.AddFilter("Microsoft", LogLevel.Warning)
+                                    .AddSerilog();
+                           });
 
-      loggerFactory.CreateLogger(nameof(Program)).LogCritical("Critical:Hello Htc.Mock!");
-      loggerFactory.CreateLogger(nameof(Program)).LogError("Hello Htc.Mock!");
-      loggerFactory.CreateLogger(nameof(Program)).LogWarning("Hello Htc.Mock!");
-      loggerFactory.CreateLogger(nameof(Program)).LogInformation("Hello Htc.Mock!");
-      loggerFactory.CreateLogger(nameof(Program)).LogTrace("Hello Htc.Mock!");
+      var logger = loggerFactory.CreateLogger(nameof(Program));
+
+      logger.LogCritical("Critical:Hello Htc.Mock!");
+      logger.LogError("Hello Htc.Mock!");
+      logger.LogWarning("Hello Htc.Mock!");
+      logger.LogInformation("Hello Htc.Mock!");
+      logger.LogTrace("Hello Htc.Mock!");
 
 
       // To provide a new client, one need to provide a sessionClient
@@ -55,7 +60,7 @@ namespace Htc.Mock.LocalGridSample
       // Code below is standard.
       var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
 
-      client.Start(new(TimeSpan.FromSeconds(1), 50, 1, 1, 5));
+      client.Start(new(TimeSpan.FromSeconds(1), 500, 1, 1, 5));
     }
   }
 }

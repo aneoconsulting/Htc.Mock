@@ -75,7 +75,7 @@ namespace Htc.Mock.RequestRunners
       logger_           = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<byte[]> ProcessRequest(Request request, string taskId)
+    public byte[] ProcessRequest(Request request, string taskId)
     {
       using (var sessionClient = gridClient_.CreateSession())
       {
@@ -84,28 +84,23 @@ namespace Htc.Mock.RequestRunners
                              ["requestId"] = request.Id,
                              ["taskId"]    = taskId,
                            });
-        logger_.LogInformation("Start to process request");
+        logger_.LogDebug("Start to process request");
 
         var inputs = request.Dependencies is null
                        ? new Dictionary<string, string>()
-                       : (await request.Dependencies
-                                       .Select(async id =>
-                                               {
-                                                 var rr = RequestResult.FromBytes(await sessionClient.GetResult(id));
-                                                 while (!rr.HasResult)
-                                                 {
-                                                   rr = RequestResult.FromBytes(await sessionClient.GetResult(rr.Value));
-                                                 }
+                       : request.Dependencies
+                                .ToDictionary(id => id,
+                                              id =>
+                                              {
+                                                var rr = RequestResult.FromBytes(sessionClient.GetResult(id));
+                                                while (!rr.HasResult)
+                                                {
+                                                  rr = RequestResult.FromBytes(sessionClient.GetResult(rr.Value));
+                                                }
 
-                                                 return new
-                                                        {
-                                                          Key = id,
-                                                          rr.Value
-                                                        };
-                                               })
-                                       .WhenAll()
-                         ).ToDictionary(pair => pair.Key,
-                                        pair => pair.Value);
+                                                return rr.Value;
+                                              }
+                                             );
 
         var res = requestProcessor_.GetResult(request, inputs);
 
@@ -116,12 +111,11 @@ namespace Htc.Mock.RequestRunners
         Dictionary<string, string> idTranslation = new Dictionary<string, string>();
         if (requests.ContainsKey(true))
         {
-          logger_.LogInformation("Will submit {count} new tasks", requests[true].Count());
+          logger_.LogDebug("Will submit {count} new tasks", requests[true].Count());
           var readyRequests = requests[true];
 
-          var newIds = await sessionClient.SubmitSubtasks(taskId,
-                                                          readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)))
-                                          .ToListAsync();
+          var newIds = sessionClient.SubmitSubtasks(taskId,
+                                                          readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)));
 
 
           idTranslation = new Dictionary<string, string>(readyRequests.Zip(newIds, (r, s) => new { Key = r.Id, Value = s })
@@ -149,7 +143,7 @@ namespace Htc.Mock.RequestRunners
             }
 
             idTranslation[req.Id] =
-              await sessionClient.SubmitSubtaskWithDependencies(taskId, DataAdapter.BuildPayload(runConfiguration_, req), newDeps);
+              sessionClient.SubmitSubtaskWithDependencies(taskId, DataAdapter.BuildPayload(runConfiguration_, req), newDeps);
           }
         }
 

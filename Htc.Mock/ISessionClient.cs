@@ -34,14 +34,7 @@ namespace Htc.Mock
     /// </summary>
     /// <param name="id">Id of the task to wait for.</param>
     /// <returns>The result of the task</returns>
-    Task<byte[]> GetResult(string id);
-
-    /// <summary>
-    ///   Waits for the completion of a task processing .
-    /// </summary>
-    /// <param name="id">Id of the task to wait for.</param>
-    /// <returns>The result of the task</returns>
-    Task WaitCompletion(string id);
+    byte[] GetResult(string id);
 
     /// <summary>
     ///   Waits for the completion of a task and all of its subtasks.
@@ -55,7 +48,7 @@ namespace Htc.Mock
     /// </summary>
     /// <param name="payloadsWithDependencies"></param>
     /// <returns></returns>
-    IAsyncEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies);
+    IEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies);
     
     /// <summary>
     /// 
@@ -63,7 +56,7 @@ namespace Htc.Mock
     /// <param name="parentId"></param>
     /// <param name="payloadWithDependencies"></param>
     /// <returns></returns>
-    IAsyncEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
+    IEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
                                                             IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies);
   }
 }

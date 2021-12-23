@@ -48,26 +48,26 @@ namespace Htc.Mock
 
       var request = runConfiguration.BuildRequest(out var shape, logger_);
 
-      var taskId = sessionClient.SubmitTask(DataAdapter.BuildPayload(runConfiguration, request)).Result;
+      var taskId = sessionClient.SubmitTask(DataAdapter.BuildPayload(runConfiguration, request));
 
       logger_.LogInformation("Submitted root task {taskId}", taskId);
 
       sessionClient.WaitSubtasksCompletion(taskId).Wait();
 
-      var rawResult = RequestResult.FromBytes(sessionClient.GetResult(taskId).Result);
+      var rawResult = RequestResult.FromBytes(sessionClient.GetResult(taskId));
       if (rawResult is null)
       {
         logger_.LogError("Could not read result. Are you sure that WaitSubtasksCompletion waits enough ?");
       }
       else
       {
-        while (!rawResult.HasResult) rawResult = RequestResult.FromBytes(sessionClient.GetResult(rawResult.Value).Result);
+        while (!rawResult.HasResult) rawResult = RequestResult.FromBytes(sessionClient.GetResult(rawResult.Value));
 
-        logger_.LogInformation("Final result is {result}", rawResult.Value);
-        logger_.LogInformation("Expected result is 1.{result}", string.Join(".", shape));
+        logger_.LogWarning("Final result is {result}", rawResult.Value);
+        logger_.LogWarning("Expected result is 1.{result}", string.Join(".", shape));
       }
       watch.Stop();
-      logger_.LogInformation("Client was executed in {time}s", watch.Elapsed.TotalSeconds);
+      logger_.LogWarning("Client was executed in {time}s", watch.Elapsed.TotalSeconds);
     }
 
 

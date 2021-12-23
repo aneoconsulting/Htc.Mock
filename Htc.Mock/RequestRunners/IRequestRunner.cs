@@ -35,6 +35,6 @@ namespace Htc.Mock.RequestRunners
     /// <param name="request">The request to process</param>
     /// <returns>The result ot the request</returns>
     /// <param name="taskId"></param>
-    Task<byte[]> ProcessRequest(Request request, string taskId);
+    byte[] ProcessRequest(Request request, string taskId);
   }
 }

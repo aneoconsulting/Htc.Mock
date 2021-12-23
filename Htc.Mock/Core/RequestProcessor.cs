@@ -92,7 +92,7 @@ namespace Htc.Mock.Core
     protected RequestAnswer ComputeResult(ComputeRequest request)
     {
       if (logger_.IsEnabled(LogLevel.Information))
-        logger_.LogInformation("Start processing a request {id} with tree shape {shape}",
+        logger_.LogInformation("Start processing request {id} with tree shape {shape}",
                                request.Id,
                                string.Join(".", request.Tree.GetShape()));
 

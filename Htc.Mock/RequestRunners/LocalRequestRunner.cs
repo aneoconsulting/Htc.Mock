@@ -54,50 +54,46 @@ namespace Htc.Mock.RequestRunners
     }
 
     /// <inheritdoc />
-    public async Task<byte[]> ProcessRequest(Request request, string taskId) => (await ProcessRequest(request)).ToBytes();
+    public byte[] ProcessRequest(Request request, string taskId) => ProcessRequest(request).ToBytes();
 
     public event Action<int> SpawningRequestEvent;
 
 
-    public async Task<RequestResult> ProcessRequest(Request request)
+    public RequestResult ProcessRequest(Request request)
     {
-      using (var _ = logger_.BeginScope(new Dictionary<string, string>
-                                        {
-                                          ["requestId"] = request.Id,
-                                        }))
-      {
-        var inputs = request.Dependencies.ToDictionary(s => s, s =>
-                                                               {
-                                                                 var rr                   = results_[s];
-                                                                 while (!rr.HasResult) rr = results_[rr.Value];
+      using var _ = logger_.BeginScope(new Dictionary<string, string>
+                                       {
+                                         ["requestId"] = request.Id,
+                                       });
+      var inputs = request.Dependencies.ToDictionary(s => s, s =>
+                                                             {
+                                                               var rr                   = results_[s];
+                                                               while (!rr.HasResult) rr = results_[rr.Value];
 
-                                                                 return rr.Value;
-                                                               });
+                                                               return rr.Value;
+                                                             });
 
-        var result = requestProcessor_.GetResult(request, inputs);
+      var result = requestProcessor_.GetResult(request, inputs);
 
 
-        await result.SubRequests
-                    .Where(r => r.Dependencies.Count == 0)
-                    .Select(async r =>
-                            {
-                              SpawningRequestEvent?.Invoke(1);
-                              var res = await ProcessRequest(r, r.Id);
-                              results_[r.Id] = RequestResult.FromBytes(res);
-                            })
-                    .WhenAll();
+      result.SubRequests
+            .Where(r => r.Dependencies.Count == 0)
+            .EvaluateAll(r =>
+                         {
+                           SpawningRequestEvent?.Invoke(1);
+                           var res = ProcessRequest(r, r.Id);
+                           results_[r.Id] = RequestResult.FromBytes(res);
+                         });
 
-        await result.SubRequests.Where(r => r.Dependencies.Count != 0)
-              .Select(async r =>
-                      {
-                        SpawningRequestEvent?.Invoke(1);
-                        var res = await ProcessRequest(r, r.Id);
-                        results_[r.Id] = RequestResult.FromBytes(res);
-                      })
-              .WhenAll();
+      result.SubRequests.Where(r => r.Dependencies.Count != 0)
+            .EvaluateAll(r =>
+                         {
+                           SpawningRequestEvent?.Invoke(1);
+                           var res = ProcessRequest(r, r.Id);
+                           results_[r.Id] = RequestResult.FromBytes(res);
+                         });
 
-        return result.Result;
-      }
+      return result.Result;
     }
   }
 }

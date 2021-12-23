@@ -41,9 +41,9 @@ namespace Htc.Mock
       logger_               = logger;
     }
 
-    public Task<byte[]> Execute(string taskId, byte[] payload)
+    public byte[] Execute(string taskId, byte[] payload)
     {
-      logger_.LogInformation("Start task {id}", taskId);
+      logger_.LogDebug("Start task {id}", taskId);
       var (runConfiguration, request) = DataAdapter.ReadPayload(payload);
       
       requestRunner_ = requestRunnerFactory_.Create(runConfiguration);

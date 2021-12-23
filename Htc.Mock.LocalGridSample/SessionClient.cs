@@ -34,9 +34,9 @@ namespace Htc.Mock.LocalGridSample
     private readonly GridWorker                                            gridWorker_;
     private readonly ILogger<SessionClient>                                logger_;
     private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists_   = new();
-    private readonly ConcurrentDictionary<string, Task<byte[]>>            resultStore_   = new();
+    private readonly ConcurrentDictionary<string, byte[]>                  resultStore_   = new();
     private readonly ConcurrentDictionary<string, Task>                    statusStore_   = new();
-    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   subtasksLists_ = new();
+    private readonly ConcurrentDictionary<string, HashSet<string>>         subtasksLists_ = new();
     private          int                                                   taskCount_;
 
 
@@ -50,39 +50,26 @@ namespace Htc.Mock.LocalGridSample
     public void Dispose() { }
     
     /// <inheritdoc />
-    public Task<byte[]> GetResult(string id)
+    public byte[] GetResult(string id)
     {
       logger_.LogTrace("Getting result for task {id}", id);
       return resultStore_[id];
     }
 
     /// <inheritdoc />
-    public Task WaitCompletion(string id)
-    {
-      logger_.LogTrace("Will wait for task {id}", id);
-      return statusStore_[id];
-    }
-
-    /// <inheritdoc />
     public async Task WaitSubtasksCompletion(string id)
     {
-      await WaitCompletion(id);
-      var subtasks = subtasksLists_[id];
-      int nbSubtasks;
-      do
+      await statusStore_[id];
+      while (subtasksLists_[id].Any())
       {
-        nbSubtasks = subtasks.Count;
-        await Task.WhenAll(subtasks.Select(s =>
-                                     {
-                                       logger_.LogTrace("Will wait for task {id}", s);
-                                       return statusStore_[s];
-                                     }));
-        subtasks = subtasksLists_[id];
-      } while (nbSubtasks != subtasks.Count);
+        var s = subtasksLists_[id].First();
+        await statusStore_[s];
+        subtasksLists_[id].Remove(s);
+      }
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies)
+    public IEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies)
       => payloadsWithDependencies.Select(p =>
                                         {
                                           var taskId = $"task_{Interlocked.Increment(ref taskCount_)}";
@@ -106,12 +93,11 @@ namespace Htc.Mock.LocalGridSample
                                                                      .Unwrap();
 
                                           return taskId;
-                                        })
-                                .ToAsyncEnumerable();
+                                        });
 
 
     /// <inheritdoc />
-    public IAsyncEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
+    public IEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
                                                                    IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies)
       => payloadWithDependencies.Select(p =>
                                         {
@@ -121,7 +107,7 @@ namespace Htc.Mock.LocalGridSample
                                           parentLists_[taskId]   = new();
                                           subtasksLists_[taskId] = new();
 
-                                          logger_.LogInformation("Task with Id {id} is a child of {parentId}",
+                                          logger_.LogDebug("Task with Id {id} is a child of {parentId}",
                                                                  taskId, parentId);
                                           parentLists_[taskId].Add(parentId);
 
@@ -136,15 +122,13 @@ namespace Htc.Mock.LocalGridSample
                                                                                                 .WhenAll();
 
 
-                                                                                         var result =
-                                                                                           gridWorker_.Execute(taskId, p.Item1);
+                                                                                         var result = gridWorker_.Execute(taskId, p.Item1);
                                                                                          logger_.LogTrace("Store result for task {id}",
                                                                                                           taskId);
                                                                                          resultStore_[taskId] = result;
                                                                                        }).Unwrap();
                                           return taskId;
-                                        })
-                                .ToAsyncEnumerable();
+                                        });
 
   }
   

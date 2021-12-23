@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -22,6 +23,14 @@ namespace Htc.Mock.Utils
 {
   public static class EnumerableExt
   {
+    public static void EvaluateAll<T>(this IEnumerable<T> enumerable, Action<T> action)
+    {
+      foreach (var element in enumerable)
+      {
+        action(element);
+      }
+    }
+
     public static Task WhenAll(this IEnumerable<Task> tasks) => Task.WhenAll(tasks);
 
     public static Task<TResult[]> WhenAll<TResult>(this IEnumerable<Task<TResult>> tasks) => Task.WhenAll(tasks);
