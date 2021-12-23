@@ -1,22 +1,19 @@
-﻿/* RequestProcessor.cs is part of the Htc.Mock solution.
-    
-   Copyright (c) 2021-2021 ANEO. 
-     W. Kirschenmann (https://github.com/wkirschenmann)
-  
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-*/ 
-
+﻿// RequestProcessor.cs is part of the Htc.Mock solution.
+// 
+// Copyright (c) 2021-2021 ANEO. All rights reserved.
+// * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using System;
 using System.Collections.Generic;
@@ -28,175 +25,110 @@ using Htc.Mock.Utils;
 
 using JetBrains.Annotations;
 
+using Microsoft.Extensions.Logging;
+
 namespace Htc.Mock.Core
 {
   [PublicAPI]
   public class RequestProcessor
   {
-    private readonly RunConfiguration runConfiguration;
-    private readonly bool             fastCompute;
-    private readonly bool             useLowMem;
-    private readonly bool             smallOutput;
+    private readonly bool             fastCompute_;
+    private readonly ILogger          logger_;
+    private readonly RunConfiguration runConfiguration_;
+    private readonly bool             smallOutput_;
+    private readonly bool             useLowMem_;
 
-    public RequestProcessor(bool fastCompute, bool useLowMem, bool smallOutput, RunConfiguration runConfiguration) 
+    public RequestProcessor(bool                       fastCompute,
+                            bool                       useLowMem,
+                            bool                       smallOutput,
+                            [NotNull] RunConfiguration runConfiguration,
+                            [NotNull] ILogger          logger)
     {
-      this.fastCompute      = fastCompute;
-      this.useLowMem        = useLowMem;
-      this.smallOutput      = smallOutput;
-      this.runConfiguration = runConfiguration;
+      fastCompute_      = fastCompute;
+      useLowMem_        = useLowMem;
+      smallOutput_      = smallOutput;
+      runConfiguration_ = runConfiguration ?? throw new ArgumentNullException(nameof(runConfiguration));
+      logger_           = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
 
     [PublicAPI]
-    public RequestResult GetResult(Request request, IEnumerable<string> inputs)
+    public RequestAnswer GetResult(Request request, IDictionary<string, string> inputs)
     {
       Debug.Assert(inputs != null);
       var output = EmulateComputation(request);
-      var res1   = ComputeResultDispatch(request, inputs);
+      var res    = ComputeResultDispatch(request, inputs);
       output.Wait();
-      return res1.WithOutput(output.Result);
+      return res;
     }
 
-    protected static RequestResult ComputeResult(AggregationRequest request, IEnumerable<string> inputs)
+    protected RequestAnswer ComputeResult(AggregationRequest request, IDictionary<string, string> inputs)
     {
-      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: Processing a AggregationRequest.");
+      logger_.LogTrace($"{nameof(ComputeRequest)}: Processing a AggregationRequest.");
       Debug.Assert(inputs != null);
 
-      var nbInputs   = 0;
-      var inputsList = inputs.Select(i => 
-                                     { 
-                                       nbInputs++;
-                                       return i;
-                                     });
+      var aggregator = new Dictionary<int, int>();
+
+      foreach (var dependency in request.Dependencies)
+      {
+        var input     = inputs[dependency];
+        var inputData = input.Split('.').Select(int.Parse).ToList();
+        for (var i = 0; i < inputData.Count; i++)
+          if (!aggregator.TryGetValue(i, out var value))
+            aggregator[i] = inputData[i];
+          else
+            aggregator[i] += inputData[i];
+      }
 
       // use this computation to check that the good results were retrieved
-      var result = GetResultString(GetAggregateString(GetAggregationRes(inputsList)));
+      var result = "1." + string.Join(".", aggregator.OrderBy(pair => pair.Key)
+                                                     .Select(pair => pair.Value));
+      if (logger_.IsEnabled(LogLevel.Information))
+        logger_.LogInformation("AggregationRequest {id} computed {result}", request.Id, result);
 
-      if (request.ResultIdsRequired.Count != nbInputs)
-        throw new
-          ArgumentException($"{nameof(request)} requires {request.ResultIdsRequired.Count} inputs, {nbInputs} provided.",
-                            nameof(inputs));
-
-      return new RequestResult(request.Id, result);
+      return new RequestAnswer(request.Id, result);
     }
 
-
-    protected static RequestResult ComputeResult(FinalRequest request, IEnumerable<string> inputs)
+    protected RequestAnswer ComputeResult(ComputeRequest request)
     {
-      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: Processing a FinalRequest.");
-      var inputList = inputs.ToList();
-      if (inputList.Any())
-        throw new
-          ArgumentException($"{nameof(request)} requires no inputs, {inputList.Count} provided.", nameof(inputs));
+      if (logger_.IsEnabled(LogLevel.Information))
+        logger_.LogInformation("Start processing a request {id} with tree shape {shape}",
+                               request.Id,
+                               string.Join(".", request.Tree.GetShape()));
 
-      return new RequestResult(request.Id, GetResultString(request.Id));
-    }
+      var subtrees = request.Tree.GetSubTrees().ToList();
 
-    protected static RequestResult ComputeResult(ComputeRequest request, IEnumerable<string> inputs)
-    {
-      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: Processing a ComputeRequest (it will generate subrequests).");
-      var inputList = inputs.ToList();
-      if (inputList.Any())
-        throw new
-          ArgumentException($"{nameof(request)} requires no inputs, {inputList.Count} provided.", nameof(inputs));
+      if (logger_.IsEnabled(LogLevel.Information) && subtrees.Any())
+        logger_.LogInformation("Request {id} generated subtrees with shape {shapes}",
+                               request.Id,
+                               string.Join(" ", subtrees.Select(tree => tree.GetShapeString())));
 
-      var subRequests = ComputeSubRequests(request);
+      if (subtrees.Count == 0)
+        return new RequestAnswer(request.Id, "1");
 
-      return new RequestResult(request.Id, subRequests);
-
-    }
-
-    private static IEnumerable<Request> ComputeSubRequests(ComputeRequest request)
-    {
-      var targetNbRq = Math.Max(2, (int)Math.Pow(request.NbSubrequests, 1.0 / request.Depth));
-      if (request.NbSubrequests - targetNbRq < 2)
-        targetNbRq = request.NbSubrequests;
-
-      Console.WriteLine($"[Htc.Mock] ComputeSubRequests: Will generate {targetNbRq} subrequests.");
-
-      var remainingRequests = request.NbSubrequests - targetNbRq;
-
-      var subRequestIds = new List<string>(targetNbRq);
-
-      for (var i = 0 ; i < targetNbRq - 2 ; ++i)
+      var subIds      = new List<string>(subtrees.Count);
+      var subRequests = new List<Request>(subtrees.Count + 1);
+      for (var i = 0; i < subtrees.Count; i++)
       {
-        int nbSubReq;
-        switch (remainingRequests)
-        {
-          case 0:
-            nbSubReq = 0;
-            break;
-          case 1:
-            throw new InvalidOperationException();
-          case 2:
-            nbSubReq = 2;
-            break;
-          default:
-            nbSubReq = 2 + (int)(request.Id.GetCryptoHashCode() % (remainingRequests - 2));
-            break;
-        }
-
-        if (remainingRequests - nbSubReq < 2)
-          nbSubReq = remainingRequests;
-        else
-        {
-          nbSubReq = 0;
-        }
-
-        var subrequestId = $"{request.Id}_{i}";
-        subRequestIds.Add(subrequestId);
-
-        if (nbSubReq == 0)
-        {
-          yield return new FinalRequest(subrequestId);
-        }
-        else
-        {
-          yield return new ComputeRequest(subrequestId,
-                                          request.Depth - 1,
-                                          nbSubReq);
-        }
-
-        remainingRequests -= nbSubReq;
+        var id = $"{request.Id}.{i}";
+        var r  = new ComputeRequest(id, subtrees[i]);
+        subIds.Add(id);
+        subRequests.Add(r);
       }
 
-      {
+      subRequests.Add(new AggregationRequest($"{request.Id}.{subtrees.Count}", subIds));
 
-        var subrequestId = $"{request.Id}_{targetNbRq - 2}";
-        subRequestIds.Add(subrequestId);
-
-        if (remainingRequests == 0)
-        {
-          yield return new FinalRequest(subrequestId);
-        }
-        else
-        {
-          yield return new ComputeRequest(subrequestId,
-                                          request.Depth - 1,
-                                          remainingRequests);
-        }
-      }
-
-      var aggregateString = GetAggregateString(GetAggregationRes(subRequestIds, GetResultString));
-
-      yield return new AggregationRequest(aggregateString,
-                                          request.Id,
-                                          request.Depth - 1,
-                                          subRequestIds);
-
-      Console.WriteLine($"[Htc.Mock] {nameof(ComputeRequest)}: {subRequestIds.Count + 1} subrequests generated.");
+      return new RequestAnswer(request.Id, $"{request.Id}.{subtrees.Count}", subRequests);
     }
 
-    protected static RequestResult ComputeResultDispatch(Request request, IEnumerable<string> inputs)
+    protected RequestAnswer ComputeResultDispatch(Request request, IDictionary<string, string> inputs)
     {
       switch (request)
       {
         case AggregationRequest aggregationRequest:
           return ComputeResult(aggregationRequest, inputs);
         case ComputeRequest computeRequest:
-          return ComputeResult(computeRequest, inputs);
-        case FinalRequest finalRequest:
-          return ComputeResult(finalRequest, inputs);
+          return ComputeResult(computeRequest);
         default:
           throw new ArgumentException($"{typeof(Request)} request cannot be handled.");
       }
@@ -204,36 +136,31 @@ namespace Htc.Mock.Core
 
     public static string GetResultString(string taskId) => $"{taskId}_result";
 
-    public static uint GetAggregationRes(IEnumerable<string> ids, Func<string, string> resultSelector) 
+    public static uint GetAggregationRes(IEnumerable<string> ids, Func<string, string> resultSelector)
       => GetAggregationRes(ids.Select(resultSelector));
 
     public static uint GetAggregationRes(IEnumerable<string> results) => results.GetCryptoHashCode();
 
     public static string GetAggregateString(uint res) => $"Aggregate_{res}";
 
-    private async Task<byte[]> EmulateComputation(Request request)
+    private async Task EmulateComputation(Request request)
     {
-      var t = Task.Delay(fastCompute?0: runConfiguration.GetTaskDurationMs(request.Id));
+      var t = Task.Delay(fastCompute_ ? 0 : runConfiguration_.GetTaskDurationMs(request.Id));
 
-      var m = useLowMem ? new byte[0, 0] : new byte[runConfiguration.Memory, 1024];
-      // Write all bytes to ensure that the memory is really allocated
-      for (var i = 0; i < m.GetLength(0); ++i)
-      {
-        for (var j = 0; j < m.GetLength(1) ; ++j)
-        {
-          m[i, j] = (byte)(m.GetLength(0) * j - 2019 * i);
-        }
-      }
+      await Task.Run(() =>
+                     {
+                       var m = useLowMem_ ? new byte[0, 0] : new byte[runConfiguration_.Memory, 1024];
+                       // Write all bytes to ensure that the memory is really allocated
+                       for (var i = 0; i < m.GetLength(0); ++i)
+                       for (var j = 0; j < m.GetLength(1); ++j)
+                         m[i, j] = (byte)((m.GetLength(0) * j) - (2019 * i));
 
-      var output = new byte[smallOutput ? 0 : runConfiguration.Data];
-      for (var i = 0; i < output.Length; ++i)
-      {
-        output[i] = (byte)((runConfiguration.Data & 2019) * i);
-      }
+                       var output                                        = new byte[smallOutput_ ? 0 : runConfiguration_.Data];
+                       for (var i = 0; i < output.Length; ++i) output[i] = (byte)((runConfiguration_.Data & 2019) * i);
 
+                       return t;
+                     });
       await t;
-
-      return output;
     }
   }
 }

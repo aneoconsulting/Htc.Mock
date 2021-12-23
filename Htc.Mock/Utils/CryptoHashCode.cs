@@ -1,22 +1,19 @@
-﻿/* CryptoHashCode.cs is part of the Htc.Mock solution.
-    
-   Copyright (c) 2021-2021 ANEO. 
-     W. Kirschenmann (https://github.com/wkirschenmann)
-  
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-*/ 
-
+﻿// CryptoHashCode.cs is part of the Htc.Mock solution.
+// 
+// Copyright (c) 2021-2021 ANEO. All rights reserved.
+// * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using System;
 using System.Collections.Generic;
@@ -27,72 +24,10 @@ namespace Htc.Mock.Utils
 {
   public class CryptoHashCode
   {
-    public uint Hash { get; private set; } = uint.MaxValue;
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(byte input)
-    {
-      Hash = ChecksumTable[(Hash ^ input) & byte.MaxValue] ^ (Hash >> 8);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(byte[] input)
-    {
-      // ReSharper disable once ForCanBeConvertedToForeach
-      for (var i = 0; i < input.Length; i++)
-      {
-        Add(input[i]);
-      }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(ReadOnlySpan<byte> input)
-    {
-      // ReSharper disable once ForCanBeConvertedToForeach
-      for (var i = 0; i < input.Length; i++)
-      {
-        Add(input[i]);
-      }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add<T>(T input) where T : struct
-      => Add(Unsafe.As<byte[]>(input));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add<T>(T[] input) where T : struct
-      => Add(Unsafe.As<byte[]>(input));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add<T>(IEnumerable<T> input) where T : struct
-    {
-      foreach (var element in input)
-      {
-        Add(element);
-      }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(string input) => Add(MemoryMarshal.AsBytes(input.AsSpan()));
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(IEnumerable<string> input)
-    {
-      foreach (var element in input)
-      {
-        Add(element);
-      }
-    }
-    
-
-
+    private const uint Polynomial = 0xEDB88320;
 
 
     private static readonly uint[] ChecksumTable;
-
-    private const uint Polynomial = 0xEDB88320;
 
     static CryptoHashCode()
     {
@@ -106,11 +41,57 @@ namespace Htc.Mock.Utils
         ChecksumTable[index] = item;
       }
     }
+
+    public uint Hash { get; private set; } = uint.MaxValue;
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(byte input)
+    {
+      Hash = ChecksumTable[(Hash ^ input) & byte.MaxValue] ^ (Hash >> 8);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(byte[] input)
+    {
+      // ReSharper disable once ForCanBeConvertedToForeach
+      for (var i = 0; i < input.Length; i++) Add(input[i]);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(ReadOnlySpan<byte> input)
+    {
+      // ReSharper disable once ForCanBeConvertedToForeach
+      for (var i = 0; i < input.Length; i++) Add(input[i]);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add<T>(T input) where T : struct
+      => Add(Unsafe.As<byte[]>(input));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add<T>(T[] input) where T : struct
+      => Add(Unsafe.As<byte[]>(input));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add<T>(IEnumerable<T> input) where T : struct
+    {
+      foreach (var element in input) Add(element);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(string input) => Add(MemoryMarshal.AsBytes(input.AsSpan()));
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Add(IEnumerable<string> input)
+    {
+      foreach (var element in input) Add(element);
+    }
   }
 
   public static class CryptoHashCodeExt
   {
-
     public static uint GetCryptoHashCode(this string input)
     {
       var coder = new CryptoHashCode();

@@ -1,22 +1,19 @@
-﻿/* RunConfiguration.cs is part of the Htc.Mock solution.
-    
-   Copyright (c) 2021-2021 ANEO. 
-     W. Kirschenmann (https://github.com/wkirschenmann)
-  
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-*/ 
-
+﻿// RunConfiguration.cs is part of the Htc.Mock solution.
+// 
+// Copyright (c) 2021-2021 ANEO. All rights reserved.
+// * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using System;
 using System.Diagnostics;
@@ -26,26 +23,20 @@ using Htc.Mock.Utils;
 
 using JetBrains.Annotations;
 
-using ProtoBuf;
+using MessagePack;
 
 namespace Htc.Mock.Core
 {
-  public static class RunConfigurationExt
-  {
-    public static Request DefaultHeadRequest(this RunConfiguration configuration)
-      => configuration.SubTasksLevels == 0
-           ? (Request) new FinalRequest()
-           : new ComputeRequest(configuration.SubTasksLevels, configuration.TotalNbSubTasks);
-  }
-
   [PublicAPI]
-  [ProtoContract(SkipConstructor = true)]
+  [MessagePackObject]
   public class RunConfiguration
   {
-    private const int NbSamples = 100000;
+    private const int NbSamples = 10000;
 
-    [ProtoMember(1)]
-    private readonly int[] durationSamples;
+    [SerializationConstructor]
+    public RunConfiguration()
+    {
+    }
 
 
     public RunConfiguration(TimeSpan totalCalculationTime,
@@ -67,23 +58,26 @@ namespace Htc.Mock.Core
       Memory               = memory;
       SubTasksLevels       = subTasksLevels;
       AvgDurationMs        = TotalCalculationTime.TotalMilliseconds / (TotalNbSubTasks + 1);
-      MinDurationMs        = minDurationMs == -1 ? (int) (AvgDurationMs / 3) : minDurationMs;
-      MaxDurationMs        = maxDurationMs == -1 ? (int) (AvgDurationMs * 30) : maxDurationMs;
+      MinDurationMs        = minDurationMs == -1 ? (int)(AvgDurationMs / 3) : minDurationMs;
+      MaxDurationMs        = maxDurationMs == -1 ? (int)(AvgDurationMs * 30) : maxDurationMs;
 
-      var seed = (int) TotalCalculationTime.Ticks +
-                 2 * TotalNbSubTasks +
-                 3 * Data +
-                 4 * Memory +
-                 5 * SubTasksLevels +
-                 6 * MinDurationMs +
-                 7 * MaxDurationMs +
-                 8 * NbSamples;
+      var seed = (int)TotalCalculationTime.Ticks +
+                 (2 * TotalNbSubTasks) +
+                 (3 * Data) +
+                 (4 * Memory) +
+                 (5 * SubTasksLevels) +
+                 (6 * MinDurationMs) +
+                 (7 * MaxDurationMs) +
+                 (8 * NbSamples);
 
       var ran = new Random(seed);
 
-      durationSamples = Enumerable.Range(0, NbSamples)
-                                   .Select(_ => (int) Beta.Sample(ran, MinDurationMs, AvgDurationMs, MaxDurationMs))
-                                   .ToArray();
+      DurationSamples = Enumerable.Range(0, NbSamples)
+                                  .Select(_ => (int)Beta.Sample(ran, MinDurationMs, AvgDurationMs, MaxDurationMs))
+                                  .Select(i => i < 0 ? 1 : i)
+                                  .ToArray();
+
+      Seed = ran.Next();
 
       Console.WriteLine($"[Htc.Mock] {nameof(TotalCalculationTime)}={TotalCalculationTime}");
       Console.WriteLine($"[Htc.Mock] {nameof(TotalNbSubTasks)}={TotalNbSubTasks}");
@@ -93,40 +87,38 @@ namespace Htc.Mock.Core
       Console.WriteLine($"[Htc.Mock] {nameof(AvgDurationMs)}={AvgDurationMs}");
       Console.WriteLine($"[Htc.Mock] {nameof(MinDurationMs)}={MinDurationMs}");
       Console.WriteLine($"[Htc.Mock] {nameof(MaxDurationMs)}={MaxDurationMs}");
-      Console.WriteLine($"[Htc.Mock] {nameof(seed)}={seed}");
+      Console.WriteLine($"[Htc.Mock] {nameof(Seed)}={Seed}");
     }
 
-    [ProtoMember(2)]
-    public TimeSpan TotalCalculationTime { get; }
+    [Key(0)]
+    public int[] DurationSamples { get; set; }
 
-    [ProtoMember(3)]
-    public int TotalNbSubTasks { get; }
+    [Key(1)]
+    public TimeSpan TotalCalculationTime { get; set; }
 
-    [ProtoMember(4)]
-    public int Data { get; }
+    [Key(2)]
+    public int TotalNbSubTasks { get; set; }
 
-    [ProtoMember(5)]
-    public int Memory { get; }
+    [Key(3)]
+    public int Data { get; set; }
 
-    [ProtoMember(6)]
-    public int SubTasksLevels { get; }
+    [Key(4)]
+    public int Memory { get; set; }
 
-    [ProtoMember(7)]
-    public int MinDurationMs { get; }
+    [Key(5)]
+    public int SubTasksLevels { get; set; }
 
-    [ProtoMember(8)]
-    public int MaxDurationMs { get; }
+    [Key(6)]
+    public int MinDurationMs { get; set; }
 
-    [ProtoMember(9)]
-    public double AvgDurationMs { get; }
+    [Key(7)]
+    public int MaxDurationMs { get; set; }
 
-    public int GetTaskDurationMs(string taskId)
-    {
-      Debug.Assert(durationSamples != null, nameof(durationSamples) + " != null");
-      var hash   = taskId.GetCryptoHashCode();
-      var result = durationSamples[hash % NbSamples];
-      return result;
-    }
+    [Key(8)]
+    public double AvgDurationMs { get; set; }
+
+    [Key(9)]
+    public int Seed { get; set; }
 
     [PublicAPI]
     public static RunConfiguration Minimal => new RunConfiguration(new TimeSpan(0, 0, 0, 0, 100),
@@ -169,5 +161,24 @@ namespace Htc.Mock.Core
                                                                   1,
                                                                   3,
                                                                   7);
+
+
+    public int GetTaskDurationMs(string taskId)
+    {
+      Debug.Assert(DurationSamples != null, nameof(DurationSamples) + " != null");
+      var hash   = taskId.GetCryptoHashCode();
+      var result = DurationSamples[hash % NbSamples];
+      return result;
+    }
+
+    /// <inheritdoc />
+    public override string ToString() => $"{{{nameof(RunConfiguration)}: {{{nameof(TotalCalculationTime)}: {TotalCalculationTime}," +
+                                         $"{nameof(TotalNbSubTasks)}: {TotalNbSubTasks}," +
+                                         $"{nameof(Data)}: {Data}," +
+                                         $"{nameof(Memory)}: {Memory}," +
+                                         $"{nameof(SubTasksLevels)}: {SubTasksLevels}," +
+                                         $"{nameof(AvgDurationMs)}: {AvgDurationMs}," +
+                                         $"{nameof(MinDurationMs)}: {MinDurationMs}," +
+                                         $"{nameof(MaxDurationMs)}: {MaxDurationMs}}}}}";
   }
 }

@@ -1,4 +1,4 @@
-﻿// IRequestRunnerFactory.cs is part of the Htc.Mock solution.
+﻿// Tree.cs is part of the Htc.Mock solution.
 // 
 // Copyright (c) 2021-2021 ANEO. All rights reserved.
 // * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
@@ -15,16 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Htc.Mock.Core;
+using System.Collections;
 
-namespace Htc.Mock.RequestRunners
+using MessagePack;
+
+namespace Htc.Mock.Core
 {
-  /// <summary>
-  ///   The <c>IRequestRunnerFactory</c> is used to build a new <c>IRequestRunner</c>
-  ///   when a new session start to be executed.
-  /// </summary>
-  public interface IRequestRunnerFactory
+  [MessagePackObject]
+  public class Tree
   {
-    IRequestRunner Create(RunConfiguration runConfiguration, string session);
+    public Tree(BitArray encoding) => Encoding = encoding;
+
+    [Key(1)]
+    public BitArray Encoding { get; }
   }
 }

@@ -1,130 +1,160 @@
-﻿/* DistributedRequestRunner.cs is part of the Htc.Mock solution.
-    
-   Copyright (c) 2021-2021 ANEO. 
-     W. Kirschenmann (https://github.com/wkirschenmann)
-  
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-*/ 
-
+﻿// DistributedRequestRunner.cs is part of the Htc.Mock solution.
+// 
+// Copyright (c) 2021-2021 ANEO. All rights reserved.
+// * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 using Htc.Mock.Core;
 
 using JetBrains.Annotations;
+
+using Microsoft.Extensions.Logging;
+
+// ReSharper disable All
 
 namespace Htc.Mock.RequestRunners
 {
   [PublicAPI]
   public class DistributedRequestRunner : IRequestRunner
   {
-    private readonly RunConfiguration runConfiguration;
-    private readonly RequestProcessor requestProcessor;
-    private readonly IDataClient      dataClient;
-    private readonly IGridClient      gridClient;
-    private readonly string           session;
+    private readonly IGridClient                       gridClient_;
+    private readonly ILogger<DistributedRequestRunner> logger_;
+    private readonly RequestProcessor                  requestProcessor_;
+    private readonly RunConfiguration                  runConfiguration_;
+    private readonly string                            session_;
 
     /// <summary>
-    /// Builds a <c>DistributedRequestRunner</c>. The lifecycle of the object is meant to
-    /// corresponds to the life cycle of sessions (<see cref="GridWorker"/>).
+    ///   Builds a <c>DistributedRequestRunner</c>. The lifecycle of the object is meant to
+    ///   corresponds to the life cycle of sessions (<see cref="GridWorker" />).
     /// </summary>
     /// <param name="gridClient"></param>
-    /// <param name="runConfiguration">Defines the properties of the current execution.
-    /// It is assumed to be a session data.</param>
-    /// <param name="fastCompute">Defines if the execution time should be emulated.
-    /// It is assumed to be a deployment configuration.</param>
-    /// <param name="useLowMem">Defines if the memory consumption should be emulated.
-    /// It is assumed to be a deployment configuration.</param>
-    /// <param name="smallOutput">Defines if the output size should be emulated.
-    /// It is assumed to be a deployment configuration.</param>
-    /// <param name="dataClient"></param>
+    /// <param name="runConfiguration">
+    ///   Defines the properties of the current execution.
+    ///   It is assumed to be a session data.
+    /// </param>
+    /// <param name="logger"></param>
+    /// <param name="fastCompute">
+    ///   Defines if the execution time should be emulated.
+    ///   It is assumed to be a deployment configuration.
+    /// </param>
+    /// <param name="useLowMem">
+    ///   Defines if the memory consumption should be emulated.
+    ///   It is assumed to be a deployment configuration.
+    /// </param>
+    /// <param name="smallOutput">
+    ///   Defines if the output size should be emulated.
+    ///   It is assumed to be a deployment configuration.
+    /// </param>
     /// <param name="session"></param>
-    public DistributedRequestRunner(IDataClient dataClient,
-                                    IGridClient gridClient,
-                                    RunConfiguration runConfiguration,
-                                    string session,
-                                    bool fastCompute = false,
-                                    bool useLowMem = false,
-                                    bool smallOutput = false)
+    public DistributedRequestRunner([NotNull] IGridClient                       gridClient,
+                                    [NotNull] RunConfiguration                  runConfiguration,
+                                    [NotNull] string                            session,
+                                    [NotNull] ILogger<DistributedRequestRunner> logger,
+                                    bool                                        fastCompute = false,
+                                    bool                                        useLowMem   = false,
+                                    bool                                        smallOutput = false)
     {
-      this.runConfiguration = runConfiguration;
-      requestProcessor      = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration);
-      this.dataClient       = dataClient;
-      this.gridClient       = gridClient;
-      this.session          = session;
+      runConfiguration_ = runConfiguration ?? throw new ArgumentNullException(nameof(runConfiguration));
+      requestProcessor_ = new RequestProcessor(fastCompute, useLowMem, smallOutput, runConfiguration, logger);
+      gridClient_       = gridClient ?? throw new ArgumentNullException(nameof(gridClient));
+      session_          = session ?? throw new ArgumentNullException(nameof(session));
+      logger_           = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public byte[] ProcessRequest(Request request, string taskId)
     {
-      using (gridClient.OpenSession(session))
+      using (gridClient_.OpenSession(session_))
       {
-        switch (request)
+        logger_.BeginScope(new Dictionary<string, string>
+                           {
+                             ["requestId"] = request.Id,
+                             ["taskId"]    = taskId,
+                           });
+        logger_.LogInformation("Start to process request");
+
+        var inputs = request.Dependencies is null
+                       ? new Dictionary<string, string>()
+                       : request.Dependencies
+                                .ToDictionary(id => id,
+                                              id =>
+                                              {
+                                                var rr = RequestResult.FromBytes(gridClient_.GetResult(id));
+                                                while (!rr.HasResult)
+                                                {
+                                                  rr = RequestResult.FromBytes(gridClient_.GetResult(rr.Value));
+                                                }
+
+                                                return rr.Value;
+                                              });
+
+        var res = requestProcessor_.GetResult(request, inputs);
+
+        var requests = res.SubRequests.GroupBy(r => r.Dependencies is null || r.Dependencies.Count == 0)
+                          .ToDictionary(g => g.Key, g => g);
+
+
+        Dictionary<string, string> idTranslation = new Dictionary<string, string>();
+        if (requests.ContainsKey(true))
         {
-          case FinalRequest finalRequest:
-          {
-            var result = requestProcessor.GetResult(finalRequest, Array.Empty<string>());
-            dataClient.StoreData(request.Id, Encoding.ASCII.GetBytes(result.Result));
+          logger_.LogInformation("Will submit {count} new tasks", requests[true].Count());
+          var readyRequests = requests[true];
 
-            return result.Output;
-          }
-
-          case AggregationRequest aggregationRequest:
-          {
-            var result = requestProcessor.GetResult(aggregationRequest, aggregationRequest.ResultIdsRequired
-                                                                                          .Select(dataClient.GetData)
-                                                                                          .Select(Encoding.ASCII.GetString)
-                                                                                          .ToList());
-            var data = Encoding.ASCII.GetBytes(result.Result);
-            dataClient.StoreData(aggregationRequest.Id, data);
-            dataClient.StoreData(aggregationRequest.ParentId, data);
-
-            return result.Output;
-          }
-
-          case ComputeRequest computeRequest:
-          {
-            var result = requestProcessor.GetResult(computeRequest, Array.Empty<string>());
-
-            AggregationRequest aggregationRequest = null;
-
-            var dependencyRequests = result.SubRequests.Where(r =>
-                                                              {
-                                                                if (!(r is AggregationRequest ar)) return true;
-
-                                                                aggregationRequest = ar;
-                                                                return false;
-                                                              });
+          var newIds = gridClient_.SubmitSubtasks(session_, taskId,
+                                                  readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)));
 
 
-            var subtasksPayload = dependencyRequests.Select(lr => DataAdapter.BuildPayload(runConfiguration, lr));
-            var subtaskIds      = gridClient.SubmitSubtasks(session, taskId, subtasksPayload);
-
-            gridClient.SubmitSubtaskWithDependencies(session,
-                                                      taskId,
-                                                      DataAdapter.BuildPayload(runConfiguration,
-                                                                              aggregationRequest),
-                                                      subtaskIds.ToList());
-
-            return result.Output;
-          }
-
-          default:
-            throw new ArgumentException($"{typeof(Request)} != supported.");
-
+          idTranslation = new Dictionary<string, string>(readyRequests.Zip(newIds, (r, s) => new { Key = r.Id, Value = s })
+                                                                      .ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
         }
+
+        if (requests.ContainsKey(false))
+        {
+          var requestsToSubmit = new Queue<Request>(requests[false]);
+          while (requestsToSubmit.Any())
+          {
+            var req = requestsToSubmit.Dequeue();
+            if (!req.Dependencies.All(dep => idTranslation.ContainsKey(dep)))
+            {
+              requestsToSubmit.Enqueue(req);
+              continue;
+            }
+
+            var newDeps = req.Dependencies.Select(id => idTranslation[id]).ToList();
+            req.Dependencies.Clear();
+
+            foreach (var newDep in newDeps)
+            {
+              req.Dependencies.Add(newDep);
+            }
+
+            idTranslation[req.Id] =
+              gridClient_.SubmitSubtaskWithDependencies(session_, taskId, DataAdapter.BuildPayload(runConfiguration_, req), newDeps);
+          }
+        }
+
+        var output = res.Result;
+
+        if (!res.Result.HasResult)
+        {
+          output = new RequestResult(false, idTranslation[res.Result.Value]);
+        }
+
+        return output.ToBytes();
       }
     }
   }
