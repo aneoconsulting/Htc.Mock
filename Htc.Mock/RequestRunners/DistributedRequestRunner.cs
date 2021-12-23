@@ -18,10 +18,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using Htc.Mock.Core;
-using Htc.Mock.Utils;
 
 using JetBrains.Annotations;
 
@@ -115,7 +113,7 @@ namespace Htc.Mock.RequestRunners
           var readyRequests = requests[true];
 
           var newIds = sessionClient.SubmitSubtasks(taskId,
-                                                          readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)));
+                                                    readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)));
 
 
           idTranslation = new Dictionary<string, string>(readyRequests.Zip(newIds, (r, s) => new { Key = r.Id, Value = s })

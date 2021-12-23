@@ -16,7 +16,6 @@
 // limitations under the License.
 
 using System;
-using System.Threading.Tasks;
 
 using Htc.Mock.Core;
 using Htc.Mock.RequestRunners;
@@ -45,7 +44,7 @@ namespace Htc.Mock
     {
       logger_.LogDebug("Start task {id}", taskId);
       var (runConfiguration, request) = DataAdapter.ReadPayload(payload);
-      
+
       requestRunner_ = requestRunnerFactory_.Create(runConfiguration);
 
       var output = requestRunner_.ProcessRequest(request, taskId);

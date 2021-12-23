@@ -59,7 +59,7 @@ namespace Htc.Mock.Tests
       var configuration    = new RunConfiguration(new(0, 0, 1), 1, 1, 1, 1);
       var requestProcessor = new RequestProcessor(true, true, true, configuration, NullLogger.Instance);
 
-      var request = new ComputeRequest("root", new(new(new[]
+      var request = new ComputeRequest("root", new Tree(new(new[]
                                                        {
                                                          true,
                                                          true,

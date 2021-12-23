@@ -31,7 +31,7 @@ public class Program
   public static void Main()
   {
     Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Warning()
+                .MinimumLevel.Information()
                 .Enrich.FromLogContext()
                 .WriteTo.Console()
                 .CreateLogger();
@@ -57,6 +57,6 @@ public class Program
     // Code below is standard.
     var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
 
-    client.Start(new(TimeSpan.FromSeconds(1), 500, 1, 1, 5));
+    client.Start(new(TimeSpan.FromSeconds(1), 50, 1, 1, 5));
   }
 }

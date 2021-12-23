@@ -18,7 +18,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using JetBrains.Annotations;
 
@@ -56,7 +55,10 @@ namespace Htc.Mock
     /// <param name="dependencies">
     ///   The list of dependencies that have to be processed before start processing <c>task</c>
     /// </param>
-    public static string SubmitSubtaskWithDependencies(this ISessionClient client, string parentId, byte[] payload, IList<string> dependencies)
+    public static string SubmitSubtaskWithDependencies(this ISessionClient client,
+                                                       string              parentId,
+                                                       byte[]              payload,
+                                                       IList<string>       dependencies)
       => client.SubmitSubtasksWithDependencies(parentId, new[] { Tuple.Create(payload, dependencies) }).Single();
 
     /// <summary>
@@ -88,8 +90,7 @@ namespace Htc.Mock
     /// <param name="payloads">The payloads of the tasks to process</param>
     /// <returns>The ids of the tasks corresponding to the <c>Tasks</c></returns>
     public static IEnumerable<string> SubmitSubtasks(this ISessionClient client, string parentId, IEnumerable<byte[]> payloads)
-      => client.SubmitSubtasksWithDependencies(parentId, payloads.Select(bytes => Tuple.Create(bytes, Array.Empty<string>() as IList<string>)));
-
-
+      => client.SubmitSubtasksWithDependencies(parentId,
+                                               payloads.Select(bytes => Tuple.Create(bytes, Array.Empty<string>() as IList<string>)));
   }
 }

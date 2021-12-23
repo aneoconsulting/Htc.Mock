@@ -16,6 +16,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 using JetBrains.Annotations;
@@ -29,20 +30,35 @@ namespace Htc.Mock.Core
   public class ComputeRequest : Request
   {
     [SerializationConstructor]
-    public ComputeRequest(Tree tree, string id, IList<string> dependencies)
+    public ComputeRequest(TreeWrapper treeWrapper, string id, IList<string> dependencies)
       : base(id, dependencies)
-      => Tree = tree;
+      => TreeWrapper = treeWrapper;
 
     /// <summary>
     /// </summary>
     /// <param name="id"></param>
-    /// <param name="tree"></param>
-    public ComputeRequest(string id,
-                          Tree   tree)
+    /// <param name="treeWrapper"></param>
+    public ComputeRequest(string      id,
+                          TreeWrapper treeWrapper)
       : base(id)
-      => Tree = tree ?? throw new ArgumentNullException(nameof(tree));
+      => TreeWrapper = treeWrapper ?? throw new ArgumentNullException(nameof(treeWrapper));
 
     [Key(0)]
-    public Tree Tree { get; }
+    public TreeWrapper TreeWrapper { get; }
+    
+    [IgnoreMember]
+    private Tree tree_;
+
+    [IgnoreMember]
+    public Tree Tree
+    {
+      get
+
+      {
+        if (tree_ is not null) return tree_;
+        tree_ = (Tree)TreeWrapper;
+        return tree_;
+      }
+    }
   }
 }

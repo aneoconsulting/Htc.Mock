@@ -16,7 +16,6 @@
 // limitations under the License.
 
 using System.Diagnostics;
-using System.Threading.Tasks;
 
 using Htc.Mock.Core;
 
@@ -66,6 +65,7 @@ namespace Htc.Mock
         logger_.LogWarning("Final result is {result}", rawResult.Value);
         logger_.LogWarning("Expected result is 1.{result}", string.Join(".", shape));
       }
+
       watch.Stop();
       logger_.LogWarning("Client was executed in {time}s", watch.Elapsed.TotalSeconds);
     }

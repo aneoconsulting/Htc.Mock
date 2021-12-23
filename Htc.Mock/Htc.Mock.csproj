@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net5.0</TargetFrameworks>
+    <TargetFrameworks>net5.0;net6.0</TargetFrameworks>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -11,10 +11,10 @@
     <WarningLevel>5</WarningLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <PackageVersion>3.0.0-alpha</PackageVersion>
+    <PackageVersion>3.0.0-alpha3</PackageVersion>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <DebugType>embedded</DebugType>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -29,8 +29,14 @@
     <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" />
     <PackageReference Include="MessagePack" Version="2.3.85" />
     <PackageReference Include="MessagePackAnalyzer" Version="2.3.85" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net5.0' ">
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' ">
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
-    <PackageReference Include="System.Linq.Async" Version="5.1.0" />
   </ItemGroup>
 
   <ItemGroup>
