@@ -22,45 +22,41 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 
 using Serilog;
-using Serilog.Events;
-using Serilog.Extensions.Logging;
 
-namespace Htc.Mock.LocalGridSample
+namespace Htc.Mock.LocalGridSample;
+
+[PublicAPI]
+public class Program
 {
-  [PublicAPI]
-  public class Program
+  public static void Main()
   {
-    public static void Main()
-    {
+    Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Warning()
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .CreateLogger();
 
-      Log.Logger = new LoggerConfiguration()
-                  .MinimumLevel.Warning()
-                  .Enrich.FromLogContext()
-                  .WriteTo.Console()
-                  .CreateLogger();
+    var loggerFactory = LoggerFactory.Create(builder =>
+                                             {
+                                               builder.AddFilter("Microsoft", LogLevel.Warning)
+                                                      .AddSerilog();
+                                             });
 
-      var loggerFactory = LoggerFactory.Create(builder =>
-                           {
-                             builder.AddFilter("Microsoft", LogLevel.Warning)
-                                    .AddSerilog();
-                           });
+    var logger = loggerFactory.CreateLogger(nameof(Program));
 
-      var logger = loggerFactory.CreateLogger(nameof(Program));
-
-      logger.LogCritical("Critical:Hello Htc.Mock!");
-      logger.LogError("Hello Htc.Mock!");
-      logger.LogWarning("Hello Htc.Mock!");
-      logger.LogInformation("Hello Htc.Mock!");
-      logger.LogTrace("Hello Htc.Mock!");
+    logger.LogCritical("Critical:Hello Htc.Mock!");
+    logger.LogError("Hello Htc.Mock!");
+    logger.LogWarning("Hello Htc.Mock!");
+    logger.LogInformation("Hello Htc.Mock!");
+    logger.LogTrace("Hello Htc.Mock!");
 
 
-      // To provide a new client, one need to provide a sessionClient
-      var gridClient = new GridClient(loggerFactory);
+    // To provide a new client, one need to provide a sessionClient
+    var gridClient = new GridClient(loggerFactory);
 
-      // Code below is standard.
-      var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
+    // Code below is standard.
+    var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
 
-      client.Start(new(TimeSpan.FromSeconds(1), 500, 1, 1, 5));
-    }
+    client.Start(new(TimeSpan.FromSeconds(1), 500, 1, 1, 5));
   }
 }

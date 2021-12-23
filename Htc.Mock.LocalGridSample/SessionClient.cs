@@ -26,110 +26,110 @@ using Htc.Mock.Utils;
 
 using Microsoft.Extensions.Logging;
 
-namespace Htc.Mock.LocalGridSample
+namespace Htc.Mock.LocalGridSample;
+
+internal class SessionClient : ISessionClient
 {
-  internal class SessionClient : ISessionClient
+  private readonly ConcurrentDictionary<string, CancellationTokenSource> cancelSources_ = new();
+  private readonly GridWorker                                            gridWorker_;
+  private readonly ILogger<SessionClient>                                logger_;
+  private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists_   = new();
+  private readonly ConcurrentDictionary<string, byte[]>                  resultStore_   = new();
+  private readonly ConcurrentDictionary<string, Task>                    statusStore_   = new();
+  private readonly ConcurrentDictionary<string, HashSet<string>>         subtasksLists_ = new();
+  private          int                                                   taskCount_;
+
+
+  public SessionClient(ILoggerFactory loggerFactory, GridWorker gridWorker)
   {
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> cancelSources_ = new();
-    private readonly GridWorker                                            gridWorker_;
-    private readonly ILogger<SessionClient>                                logger_;
-    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists_   = new();
-    private readonly ConcurrentDictionary<string, byte[]>                  resultStore_   = new();
-    private readonly ConcurrentDictionary<string, Task>                    statusStore_   = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>>         subtasksLists_ = new();
-    private          int                                                   taskCount_;
-
-
-    public SessionClient(ILoggerFactory loggerFactory, GridWorker gridWorker)
-    {
-      logger_     = loggerFactory.CreateLogger<SessionClient>();
-      gridWorker_ = gridWorker;
-    }
-
-    /// <inheritdoc />
-    public void Dispose() { }
-    
-    /// <inheritdoc />
-    public byte[] GetResult(string id)
-    {
-      logger_.LogTrace("Getting result for task {id}", id);
-      return resultStore_[id];
-    }
-
-    /// <inheritdoc />
-    public async Task WaitSubtasksCompletion(string id)
-    {
-      await statusStore_[id];
-      while (subtasksLists_[id].Any())
-      {
-        var s = subtasksLists_[id].First();
-        await statusStore_[s];
-        subtasksLists_[id].Remove(s);
-      }
-    }
-
-    /// <inheritdoc />
-    public IEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies)
-      => payloadsWithDependencies.Select(p =>
-                                        {
-                                          var taskId = $"task_{Interlocked.Increment(ref taskCount_)}";
-                                          logger_.LogTrace("Submit task with Id {id}", taskId);
-                                          cancelSources_[taskId] = new();
-                                          parentLists_[taskId]   = new();
-                                          subtasksLists_[taskId] = new();
-                                          logger_.LogTrace("Launch a new System.Task to process task {id}",
-                                                           taskId);
-                                          statusStore_[taskId] = Task.Factory
-                                                                     .StartNew(async () =>
-                                                                               {
-                                                                                 await Task.WhenAll(p.Item2
-                                                                                                     .Select(WaitSubtasksCompletion));
-                                                                                 var result = gridWorker_.Execute(taskId, p.Item1);
-                                                                                 logger_.LogTrace("Store result for task {id}",
-                                                                                                  taskId);
-                                                                                 resultStore_[taskId] = result;
-                                                                               },
-                                                                               cancelSources_[taskId].Token)
-                                                                     .Unwrap();
-
-                                          return taskId;
-                                        });
-
-
-    /// <inheritdoc />
-    public IEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
-                                                                   IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies)
-      => payloadWithDependencies.Select(p =>
-                                        {
-                                          var taskId = $"task_{Interlocked.Increment(ref taskCount_)}";
-                                          logger_.LogTrace("Submit task with Id {id}", taskId);
-                                          cancelSources_[taskId] = new();
-                                          parentLists_[taskId]   = new();
-                                          subtasksLists_[taskId] = new();
-
-                                          logger_.LogDebug("Task with Id {id} is a child of {parentId}",
-                                                                 taskId, parentId);
-                                          parentLists_[taskId].Add(parentId);
-
-                                          subtasksLists_[parentId].Add(taskId);
-                                          foreach (var parent in parentLists_[parentId])
-                                            subtasksLists_[parent].Add(taskId);
-
-                                          logger_.LogTrace("Launch a new System.Task to process task {id}", taskId);
-                                          statusStore_[taskId] = Task.Factory.StartNew(async () =>
-                                                                                       {
-                                                                                         await p.Item2.Select(WaitSubtasksCompletion)
-                                                                                                .WhenAll();
-
-
-                                                                                         var result = gridWorker_.Execute(taskId, p.Item1);
-                                                                                         logger_.LogTrace("Store result for task {id}",
-                                                                                                          taskId);
-                                                                                         resultStore_[taskId] = result;
-                                                                                       }).Unwrap();
-                                          return taskId;
-                                        });
-
+    logger_     = loggerFactory.CreateLogger<SessionClient>();
+    gridWorker_ = gridWorker;
   }
-  
+
+  /// <inheritdoc />
+  public void Dispose()
+  {
+  }
+
+  /// <inheritdoc />
+  public byte[] GetResult(string id)
+  {
+    logger_.LogTrace("Getting result for task {id}", id);
+    return resultStore_[id];
+  }
+
+  /// <inheritdoc />
+  public async Task WaitSubtasksCompletion(string id)
+  {
+    await statusStore_[id];
+    while (subtasksLists_[id].Any())
+    {
+      var s = subtasksLists_[id].First();
+      await statusStore_[s];
+      subtasksLists_[id].Remove(s);
+    }
+  }
+
+  /// <inheritdoc />
+  public IEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies)
+    => payloadsWithDependencies.Select(p =>
+                                       {
+                                         var taskId = $"task_{Interlocked.Increment(ref taskCount_)}";
+                                         logger_.LogTrace("Submit task with Id {id}", taskId);
+                                         cancelSources_[taskId] = new();
+                                         parentLists_[taskId]   = new();
+                                         subtasksLists_[taskId] = new();
+                                         logger_.LogTrace("Launch a new System.Task to process task {id}",
+                                                          taskId);
+                                         statusStore_[taskId] = Task.Factory
+                                                                    .StartNew(async () =>
+                                                                              {
+                                                                                await Task.WhenAll(p.Item2
+                                                                                                    .Select(WaitSubtasksCompletion));
+                                                                                var result = gridWorker_.Execute(taskId, p.Item1);
+                                                                                logger_.LogTrace("Store result for task {id}",
+                                                                                                 taskId);
+                                                                                resultStore_[taskId] = result;
+                                                                              },
+                                                                              cancelSources_[taskId].Token)
+                                                                    .Unwrap();
+
+                                         return taskId;
+                                       });
+
+
+  /// <inheritdoc />
+  public IEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
+                                                            IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies)
+    => payloadWithDependencies.Select(p =>
+                                      {
+                                        var taskId = $"task_{Interlocked.Increment(ref taskCount_)}";
+                                        logger_.LogTrace("Submit task with Id {id}", taskId);
+                                        cancelSources_[taskId] = new();
+                                        parentLists_[taskId]   = new();
+                                        subtasksLists_[taskId] = new();
+
+                                        logger_.LogDebug("Task with Id {id} is a child of {parentId}",
+                                                         taskId, parentId);
+                                        parentLists_[taskId].Add(parentId);
+
+                                        subtasksLists_[parentId].Add(taskId);
+                                        foreach (var parent in parentLists_[parentId])
+                                          subtasksLists_[parent].Add(taskId);
+
+                                        logger_.LogTrace("Launch a new System.Task to process task {id}", taskId);
+                                        statusStore_[taskId] = Task.Factory.StartNew(async () =>
+                                                                                     {
+                                                                                       await p.Item2.Select(WaitSubtasksCompletion)
+                                                                                              .WhenAll();
+
+
+                                                                                       var result =
+                                                                                         gridWorker_.Execute(taskId, p.Item1);
+                                                                                       logger_.LogTrace("Store result for task {id}",
+                                                                                                        taskId);
+                                                                                       resultStore_[taskId] = result;
+                                                                                     }).Unwrap();
+                                        return taskId;
+                                      });
 }

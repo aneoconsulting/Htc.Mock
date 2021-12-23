@@ -25,10 +25,7 @@ namespace Htc.Mock.Utils
   {
     public static void EvaluateAll<T>(this IEnumerable<T> enumerable, Action<T> action)
     {
-      foreach (var element in enumerable)
-      {
-        action(element);
-      }
+      foreach (var element in enumerable) action(element);
     }
 
     public static Task WhenAll(this IEnumerable<Task> tasks) => Task.WhenAll(tasks);
@@ -37,10 +34,7 @@ namespace Htc.Mock.Utils
 
     public static async IAsyncEnumerable<TResult> AsAsyncEnumerable<TResult>(this IEnumerable<Task<TResult>> tasks)
     {
-      foreach (var task in tasks)
-      {
-        yield return await task;
-      }
+      foreach (var task in tasks) yield return await task;
     }
   }
 }
