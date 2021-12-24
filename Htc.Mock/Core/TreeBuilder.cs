@@ -23,9 +23,9 @@ namespace Htc.Mock.Core
 {
   internal class TreeBuilder
   {
-    private readonly BitArray encoding_ = new BitArray(0);
+    private readonly List<bool> encoding_ = new();
 
-    private readonly Dictionary<int, int> shape_ = new Dictionary<int, int>();
+    private readonly Dictionary<int, int> shape_ = new();
 
     public TreeBuilder(int maxDepth = -1) => MaxDepth = maxDepth;
     private int       MaxDepth     { get; }
@@ -52,9 +52,7 @@ namespace Htc.Mock.Core
         --Depth;
       }
 
-      encoding_.Length++;
-
-      encoding_[^1] = a;
+      encoding_.Add(a);
       return true;
     }
 
@@ -62,7 +60,7 @@ namespace Htc.Mock.Core
     {
       while (Depth > 0) TryAdd(false);
 
-      return new Tree(encoding_);
+      return new(new (encoding_));
     }
   }
 }

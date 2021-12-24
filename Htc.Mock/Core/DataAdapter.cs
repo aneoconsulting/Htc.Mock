@@ -44,12 +44,11 @@ namespace Htc.Mock.Core
         case ComputeRequest cr:
           r.ComputeRequest = new()
                              {
-                               Count    = cr.TreeWrapper.Count,
-                               Encoding = ByteString.CopyFrom(cr.TreeWrapper.Encoding),
+                               Count    = cr.Tree.Encoding.Count,
+                               Encoding = ByteString.CopyFrom(cr.Tree.Encoding.Data),
                              };
           break;
       }
-
       return r;
     }
 
@@ -75,11 +74,11 @@ namespace Htc.Mock.Core
         case Protos.Request.SubClassOneofCase.AggregationRequest:
           return new AggregationRequest(r.Id, r.Dependencies);
         case Protos.Request.SubClassOneofCase.ComputeRequest:
-          return new ComputeRequest(new TreeWrapper
-                                    {
-                                      Count    = r.ComputeRequest.Count,
-                                      Encoding = r.ComputeRequest.Encoding.ToByteArray(),
-                                    },
+          return new ComputeRequest(new(new()
+                                        {
+                                          Data   = r.ComputeRequest.Encoding.ToByteArray(),
+                                          Length = r.ComputeRequest.Count,
+                                        }),
                                     r.Id,
                                     r.Dependencies
                                    );

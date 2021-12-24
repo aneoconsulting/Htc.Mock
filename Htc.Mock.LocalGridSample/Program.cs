@@ -59,7 +59,7 @@ namespace Htc.Mock.LocalGridSample
       // Code below is standard.
       var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
 
-      client.Start(new(TimeSpan.FromSeconds(1), 500, 1, 1, 5));
+      client.Start(new(new TimeSpan(0, 0, 0, 0, 100), 100, 1, 1, 4));
     }
   }
 }

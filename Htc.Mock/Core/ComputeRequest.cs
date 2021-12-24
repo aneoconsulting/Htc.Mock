@@ -26,32 +26,19 @@ namespace Htc.Mock.Core
   [PublicAPI]
   public class ComputeRequest : Request
   {
-    public ComputeRequest(TreeWrapper treeWrapper, string id, IList<string> dependencies)
+    public ComputeRequest(Tree tree, string id, IList<string> dependencies)
       : base(id, dependencies)
-      => TreeWrapper = treeWrapper;
+      => Tree = tree;
 
     /// <summary>
     /// </summary>
     /// <param name="id"></param>
-    /// <param name="treeWrapper"></param>
-    public ComputeRequest(string      id,
-                          TreeWrapper treeWrapper)
+    /// <param name="tree"></param>
+    public ComputeRequest(string id,
+                          Tree   tree)
       : base(id)
-      => TreeWrapper = treeWrapper ?? throw new ArgumentNullException(nameof(treeWrapper));
+      => Tree = tree ?? throw new ArgumentNullException(nameof(tree));
 
-    public TreeWrapper TreeWrapper { get; }
-    
-    private Tree tree_;
-
-    public Tree Tree
-    {
-      get
-
-      {
-        if (tree_ is not null) return tree_;
-        tree_ = (Tree)TreeWrapper;
-        return tree_;
-      }
-    }
+    public Tree Tree { get; }
   }
 }
