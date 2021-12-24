@@ -104,7 +104,7 @@ namespace Htc.Mock.Core
                                string.Join(" ", subtrees.Select(tree => tree.GetShapeString())));
 
       if (subtrees.Count == 0)
-        return new RequestAnswer(request.Id, "1");
+        return new(request.Id, "1");
 
       var subIds      = new List<string>(subtrees.Count);
       var subRequests = new List<Request>(subtrees.Count + 1);
@@ -118,7 +118,7 @@ namespace Htc.Mock.Core
 
       subRequests.Add(new AggregationRequest($"{request.Id}.{subtrees.Count}", subIds));
 
-      return new RequestAnswer(request.Id, $"{request.Id}.{subtrees.Count}", subRequests);
+      return new(request.Id, $"{request.Id}.{subtrees.Count}", subRequests);
     }
 
     protected RequestAnswer ComputeResultDispatch(Request request, IDictionary<string, string> inputs)

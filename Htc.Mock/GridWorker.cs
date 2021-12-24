@@ -32,7 +32,6 @@ namespace Htc.Mock
     private readonly ILogger<GridWorker>   logger_;
     private readonly IRequestRunnerFactory requestRunnerFactory_;
 
-    private IRequestRunner requestRunner_;
 
     public GridWorker(IRequestRunnerFactory requestRunnerFactory, ILogger<GridWorker> logger)
     {
@@ -45,9 +44,8 @@ namespace Htc.Mock
       logger_.LogDebug("Start task {id}", taskId);
       var (runConfiguration, request) = DataAdapter.ReadPayload(payload);
 
-      requestRunner_ = requestRunnerFactory_.Create(runConfiguration);
-
-      var output = requestRunner_.ProcessRequest(request, taskId);
+      var output = requestRunnerFactory_.Create(runConfiguration)
+                                        .ProcessRequest(request, taskId);
       logger_.LogInformation("Completed task {id}", taskId);
       return output;
     }

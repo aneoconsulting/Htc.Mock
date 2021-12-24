@@ -6,8 +6,12 @@ option csharp_namespace = "Htc.Mock.Core.Protos";
 package Htc.Mock.Core.Protos;
 
 message RequestResult
-{
-	bool HasResult = 1;
+{  enum ResultType {
+		UNKNOWN = 0;
+		FORWARD = 1;
+		VALUE = 2;
+	}
+	ResultType Type = 1;
 	string Value = 2;
 }
 

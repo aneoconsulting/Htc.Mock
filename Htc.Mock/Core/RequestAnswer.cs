@@ -26,8 +26,15 @@ using JetBrains.Annotations;
 
 namespace Htc.Mock.Core
 {
+  public class RequestResult
+  {
+    public bool   HasResult { get; set; }
+    public string Value     { get; set; } = string.Empty;
+  }
+
   public class RequestAnswer
   {
+
     public RequestAnswer(string requestId, string result)
       : this(requestId, result, true, Array.Empty<Request>())
     {
@@ -60,7 +67,11 @@ namespace Htc.Mock.Core
       }
 
       RequestId   = requestId;
-      Result      = new (){HasResult = hasResult, Value = result};
+      Result = new()
+               {
+                 HasResult = hasResult, 
+                 Value = result,
+               };
       SubRequests = subRequests;
     }
 

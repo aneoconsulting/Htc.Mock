@@ -10,10 +10,11 @@
     <WarningLevel>5</WarningLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <PackageVersion>3.0.0-alpha6</PackageVersion>
+    <PackageVersion>3.0.0-alpha10</PackageVersion>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <DebugType>portable</DebugType>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

@@ -90,7 +90,7 @@ namespace Htc.Mock.Core
       Console.WriteLine($"[Htc.Mock] {nameof(Seed)}={Seed}");
     }
 
-    public int[] DurationSamples { get; set; }
+    public int[] DurationSamples { get; set; } = Array.Empty<int>();
 
     public TimeSpan TotalCalculationTime { get; set; }
 

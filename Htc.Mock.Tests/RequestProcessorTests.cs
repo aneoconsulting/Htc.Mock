@@ -19,10 +19,13 @@ using System.Collections.Concurrent;
 using System.Linq;
 
 using Htc.Mock.Core;
+using Htc.Mock.Core.Protos;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
 using NUnit.Framework;
+
+using RunConfiguration = Htc.Mock.Core.RunConfiguration;
 
 namespace Htc.Mock.Tests
 {

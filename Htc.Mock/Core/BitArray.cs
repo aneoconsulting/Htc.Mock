@@ -99,7 +99,7 @@ namespace Htc.Mock.Core
     public bool IsReadOnly => false;
 
     /// <inheritdoc />
-    public object Clone() => new BitArray { Data = Data.Clone() as byte[], length_ = length_ };
+    public object Clone() => new BitArray { Data = (Data.Clone() as byte[])!, length_ = length_ };
 
     public bool this[int index]
     {

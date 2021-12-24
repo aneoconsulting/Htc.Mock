@@ -123,5 +123,37 @@ namespace Htc.Mock.Core
 
       return output;
     }
+
+    public static byte[] Serialize(RequestResult result)
+    {
+      if (result is null)
+        throw new NullReferenceException("Cannot serialize a null result");
+      if (string.IsNullOrEmpty(result.Value))
+        throw new("Result contains no data");
+      return new Protos.RequestResult
+             {
+               Value = result.Value,
+               Type = result.HasResult
+                        ? Protos.RequestResult.Types.ResultType.Value
+                        : Protos.RequestResult.Types.ResultType.Forward,
+             }.ToByteArray();
+    }
+
+    public static RequestResult ReadResult(byte[] input)
+    {
+      var result = Protos.RequestResult.Parser.ParseFrom(input);
+      if (result is null)
+        throw new NullReferenceException("Read a null result");
+      if (result.Type == Protos.RequestResult.Types.ResultType.Unknown)
+        throw new("Data received is not valid: its type cannot be unknown");
+      if (string.IsNullOrEmpty(result.Value))
+        throw new("Result contains no data");
+
+      return new ()
+             {
+               HasResult = result.Type == Protos.RequestResult.Types.ResultType.Value,
+               Value     = result.Value,
+             };
+    }
   }
 }

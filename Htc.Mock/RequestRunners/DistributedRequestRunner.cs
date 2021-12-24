@@ -19,16 +19,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using Google.Protobuf;
-
 using Htc.Mock.Core;
-using Htc.Mock.Core.Protos;
 
 using JetBrains.Annotations;
 
 using Microsoft.Extensions.Logging;
 
 using Request = Htc.Mock.Core.Request;
+using RequestResult = Htc.Mock.Core.RequestResult;
 using RunConfiguration = Htc.Mock.Core.RunConfiguration;
 
 // ReSharper disable All
@@ -96,15 +94,20 @@ namespace Htc.Mock.RequestRunners
                                               id =>
                                               {                                                  
                                                 logger_.LogInformation("Looking for result for Id {id}",id);
-                                                var rr         = RequestResult.Parser.ParseFrom(sessionClient.GetResult(id));
+                                                var rr         = DataAdapter.ReadResult(sessionClient.GetResult(id));
                                                 var previousId = id;
+                                                logger_.LogTrace("Result retrived for id {id} is HasResult={hasResult}, Value={value}",
+                                                                 previousId, rr.HasResult, rr.Value);
                                                 while (!rr.HasResult)
                                                 {
-                                                  logger_.LogInformation("Result for Id {id} was inconclusive. Looking for nested Id {id2}",
-                                                                         previousId, 
-                                                                         rr.Value);
+                                                  logger_
+                                                   .LogInformation("Result for Id {id} was inconclusive. Looking for nested Id {id2}",
+                                                                   previousId,
+                                                                   rr.Value);
                                                   previousId = rr.Value;
-                                                  rr         = RequestResult.Parser.ParseFrom(sessionClient.GetResult(rr.Value));
+                                                  rr = DataAdapter.ReadResult(sessionClient.GetResult(rr.Value));
+                                                  logger_.LogTrace("Result retrived for id {id} is HasResult={hasResult}, Value={value}",
+                                                                   previousId, rr.HasResult, rr.Value);
                                                 }
 
                                                 return rr.Value;
@@ -112,6 +115,9 @@ namespace Htc.Mock.RequestRunners
                                              );
 
         var res = requestProcessor_.GetResult(request, inputs);
+        logger_.LogDebug("Result for processing request is HasResult={hasResult}, Value={value}",
+                         res.Result.HasResult, 
+                         res.Result.Value);
 
         var requests = res.SubRequests.GroupBy(r => r.Dependencies is null || r.Dependencies.Count == 0)
                           .ToDictionary(g => g.Key, g => g);
@@ -161,13 +167,14 @@ namespace Htc.Mock.RequestRunners
         {
           output = new RequestResult
                    {
-                     HasResult = false,
-                     Value     = idTranslation[res.Result.Value],
+                     HasResult  = false,
+                     Value = idTranslation[res.Result.Value],
                    };
-          logger_.LogInformation("translated internal id {internal} to external id {external}", res.Result.Value, output.Value);
+          logger_.LogDebug("translated internal id {internal} to external id {external}", res.Result.Value, output.Value);
         }
 
-        return output.ToByteArray();
+        logger_.LogTrace("result stored for task is {result}", output);
+        return DataAdapter.Serialize(output);
       }
     }
   }

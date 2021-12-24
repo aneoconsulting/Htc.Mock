@@ -20,10 +20,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-using Google.Protobuf;
-
 using Htc.Mock.Core;
-using Htc.Mock.Core.Protos;
 using Htc.Mock.Utils;
 
 using JetBrains.Annotations;
@@ -55,13 +52,13 @@ namespace Htc.Mock.RequestRunners
     public LocalRequestRunner(RunConfiguration runConfiguration, ILogger<LocalRequestRunner> logger)
     {
       logger_           = logger;
-      requestProcessor_ = new RequestProcessor(true, true, true, runConfiguration, logger);
+      requestProcessor_ = new(true, true, true, runConfiguration, logger);
     }
 
     /// <inheritdoc />
-    public byte[] ProcessRequest(Request request, string taskId) => ProcessRequest(request).ToByteArray();
+    public byte[] ProcessRequest(Request request, string taskId) => DataAdapter.Serialize(ProcessRequest(request));
 
-    public event Action<int> SpawningRequestEvent;
+    public event Action<int>? SpawningRequestEvent;
 
 
     public RequestResult ProcessRequest(Request request)
@@ -87,7 +84,7 @@ namespace Htc.Mock.RequestRunners
                          {
                            SpawningRequestEvent?.Invoke(1);
                            var res = ProcessRequest(r, r.Id);
-                           results_[r.Id] = RequestResult.Parser.ParseFrom(res);
+                           results_[r.Id] = DataAdapter.ReadResult(res);
                          });
 
       result.SubRequests.Where(r => r.Dependencies.Count != 0)
@@ -95,7 +92,7 @@ namespace Htc.Mock.RequestRunners
                          {
                            SpawningRequestEvent?.Invoke(1);
                            var res = ProcessRequest(r, r.Id);
-                           results_[r.Id] = RequestResult.Parser.ParseFrom(res);
+                           results_[r.Id] = DataAdapter.ReadResult(res);
                          });
 
       return result.Result;

@@ -53,21 +53,16 @@ namespace Htc.Mock
       var taskId = sessionClient.SubmitTask(DataAdapter.BuildPayload(runConfiguration, request));
 
       logger_.LogInformation("Submitted root task {taskId}", taskId);
-
       sessionClient.WaitSubtasksCompletion(taskId).Wait();
 
-      var rawResult = RequestResult.Parser.ParseFrom(sessionClient.GetResult(taskId));
-      if (rawResult is null)
+      var rawResult = DataAdapter.ReadResult(sessionClient.GetResult(taskId));
+      while (!rawResult.HasResult)
       {
-        logger_.LogError("Could not read result. Are you sure that WaitSubtasksCompletion waits enough ?");
+        rawResult = DataAdapter.ReadResult(sessionClient.GetResult(rawResult.Value));
       }
-      else
-      {
-        while (!rawResult.HasResult) rawResult = RequestResult.Parser.ParseFrom(sessionClient.GetResult(rawResult.Value));
 
-        logger_.LogWarning("Final result is {result}", rawResult.Value);
-        logger_.LogWarning("Expected result is 1.{result}", string.Join(".", shape));
-      }
+      logger_.LogWarning("Final result is {result}", rawResult.Value);
+      logger_.LogWarning("Expected result is 1.{result}", string.Join(".", shape));
 
       watch.Stop();
       logger_.LogWarning("Client was executed in {time}s", watch.Elapsed.TotalSeconds);
