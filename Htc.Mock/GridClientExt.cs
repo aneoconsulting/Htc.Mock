@@ -36,32 +36,6 @@ namespace Htc.Mock
       => client.SubmitTasks(new[] { payload }).Single();
 
     /// <summary>
-    ///   Submit a new <c>Task</c> to be processed
-    /// </summary>
-    /// <param name="client"></param>
-    /// <param name="parentId"></param>
-    /// <param name="payload">The payload of the task to process</param>
-    /// <returns>The id of the task corresponding to the <c>Task</c></returns>
-    public static string SubmitSubtask(this ISessionClient client, string parentId, byte[] payload)
-      => client.SubmitSubtasks(parentId, new[] { payload }).Single();
-
-
-    /// <summary>
-    ///   Submit a new <c>Task</c> to be processed after completion of its dependencies
-    /// </summary>
-    /// <param name="client"></param>
-    /// <param name="parentId"></param>
-    /// <param name="payload">The payload of the task to process</param>
-    /// <param name="dependencies">
-    ///   The list of dependencies that have to be processed before start processing <c>task</c>
-    /// </param>
-    public static string SubmitSubtaskWithDependencies(this ISessionClient client,
-                                                       string              parentId,
-                                                       byte[]              payload,
-                                                       IList<string>       dependencies)
-      => client.SubmitSubtasksWithDependencies(parentId, new[] { Tuple.Create(payload, dependencies) }).Single();
-
-    /// <summary>
     ///   Submit a new <c>Task</c> to be processed after completion of its dependencies
     /// </summary>
     /// <param name="client"></param>
@@ -81,16 +55,5 @@ namespace Htc.Mock
     /// <returns>The ids of the tasks corresponding to the <c>Tasks</c></returns>
     public static IEnumerable<string> SubmitTasks(this ISessionClient client, IEnumerable<byte[]> payloads)
       => client.SubmitTasksWithDependencies(payloads.Select(bytes => Tuple.Create(bytes, Array.Empty<string>() as IList<string>)));
-
-    /// <summary>
-    ///   Submit a new <c>Task</c> to be processed
-    /// </summary>
-    /// <param name="client"></param>
-    /// <param name="parentId"></param>
-    /// <param name="payloads">The payloads of the tasks to process</param>
-    /// <returns>The ids of the tasks corresponding to the <c>Tasks</c></returns>
-    public static IEnumerable<string> SubmitSubtasks(this ISessionClient client, string parentId, IEnumerable<byte[]> payloads)
-      => client.SubmitSubtasksWithDependencies(parentId,
-                                               payloads.Select(bytes => Tuple.Create(bytes, Array.Empty<string>() as IList<string>)));
   }
 }

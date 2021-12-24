@@ -17,16 +17,13 @@
 
 using System.Collections;
 
-using MessagePack;
 
 namespace Htc.Mock.Core
 {
-  [MessagePackObject]
   public class Tree
   {
     public Tree(BitArray encoding) => Encoding = encoding;
 
-    [Key(1)]
     public BitArray Encoding { get; }
   }
 }

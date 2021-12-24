@@ -15,28 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using MessagePack;
+using Htc.Mock.Core.Protos;
 
 namespace Htc.Mock.Core
 {
-  [MessagePackObject]
-  public class RequestResult
+  public static class RequestResultExt
   {
-    public RequestResult(bool hasResult, string value)
-    {
-      HasResult = hasResult;
-      Value     = value;
-    }
-
-    [Key(1)]
-    public bool HasResult { get; }
-
-    [Key(2)]
-    public string Value { get; }
-
-    public byte[] ToBytes() => MessagePackSerializer.Serialize(this);
-
     public static RequestResult FromBytes(byte[] input)
-      => MessagePackSerializer.Deserialize<RequestResult>(input);
+      => Protos.RequestResult.Parser.ParseFrom(input);
   }
 }

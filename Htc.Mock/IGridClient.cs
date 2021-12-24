@@ -25,6 +25,11 @@ namespace Htc.Mock
     /// <summary>
     ///   Creates a session that can be used to submit new task or to retrieve results from previous tasks
     /// </summary>
+    ISessionClient CreateSubSession(string taskId);
+
+    /// <summary>
+    ///   Creates a session that can be used to submit new task or to retrieve results from previous tasks
+    /// </summary>
     ISessionClient CreateSession();
   }
 }

@@ -20,12 +20,9 @@ using System.Diagnostics;
 
 using JetBrains.Annotations;
 
-using MessagePack;
-
 namespace Htc.Mock.Core
 {
   [PublicAPI]
-  [MessagePackObject]
   public class AggregationRequest : Request
   {
     public AggregationRequest(string        id,

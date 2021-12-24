@@ -20,12 +20,18 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
+using Google.Protobuf;
+
 using Htc.Mock.Core;
+using Htc.Mock.Core.Protos;
 using Htc.Mock.Utils;
 
 using JetBrains.Annotations;
 
 using Microsoft.Extensions.Logging;
+
+using Request = Htc.Mock.Core.Request;
+using RunConfiguration = Htc.Mock.Core.RunConfiguration;
 
 namespace Htc.Mock.RequestRunners
 {
@@ -53,7 +59,7 @@ namespace Htc.Mock.RequestRunners
     }
 
     /// <inheritdoc />
-    public byte[] ProcessRequest(Request request, string taskId) => ProcessRequest(request).ToBytes();
+    public byte[] ProcessRequest(Request request, string taskId) => ProcessRequest(request).ToByteArray();
 
     public event Action<int> SpawningRequestEvent;
 
@@ -81,7 +87,7 @@ namespace Htc.Mock.RequestRunners
                          {
                            SpawningRequestEvent?.Invoke(1);
                            var res = ProcessRequest(r, r.Id);
-                           results_[r.Id] = RequestResult.FromBytes(res);
+                           results_[r.Id] = RequestResult.Parser.ParseFrom(res);
                          });
 
       result.SubRequests.Where(r => r.Dependencies.Count != 0)
@@ -89,7 +95,7 @@ namespace Htc.Mock.RequestRunners
                          {
                            SpawningRequestEvent?.Invoke(1);
                            var res = ProcessRequest(r, r.Id);
-                           results_[r.Id] = RequestResult.FromBytes(res);
+                           results_[r.Id] = RequestResult.Parser.ParseFrom(res);
                          });
 
       return result.Result;

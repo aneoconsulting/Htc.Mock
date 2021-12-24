@@ -15,18 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using MessagePack;
-
 using System.Collections;
 
 namespace Htc.Mock.Core
 {
-  [MessagePackObject]
   public class TreeWrapper
   {
-    [Key(0)]
     public byte[] Encoding { get; set; }
-    [Key(1)]
     public int Count { get; set; }
 
     public static implicit operator TreeWrapper(Tree tree)

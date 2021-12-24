@@ -42,8 +42,7 @@ namespace Htc.Mock.LocalGridSample
 
       var loggerProvider = new SerilogLoggerProvider(Log.Logger);
 
-      var loggerFactory = new LoggerFactory(new[] { loggerProvider })
-       .AddSerilog(); 
+      var loggerFactory = new LoggerFactory(new[] { loggerProvider });
 
       var logger = loggerFactory.CreateLogger(nameof(Program));
 
@@ -60,7 +59,7 @@ namespace Htc.Mock.LocalGridSample
       // Code below is standard.
       var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
 
-      client.Start(new(TimeSpan.FromSeconds(1), 5000, 1, 1, 5));
+      client.Start(new(TimeSpan.FromSeconds(1), 500, 1, 1, 5));
     }
   }
 }

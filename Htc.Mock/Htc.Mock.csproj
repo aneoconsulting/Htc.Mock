@@ -10,7 +10,7 @@
     <WarningLevel>5</WarningLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <PackageVersion>3.0.0-alpha3</PackageVersion>
+    <PackageVersion>3.0.0-alpha4</PackageVersion>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <DebugType>portable</DebugType>
@@ -26,9 +26,20 @@
 
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" />
-    <PackageReference Include="MessagePack" Version="2.3.85" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.3.85" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+    
+    <PackageReference Include="Google.Protobuf" Version="3.19.1" />
+    <PackageReference Include="Grpc.Tools" Version="2.41.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  
+
+  <ItemGroup>
+    <Protobuf Include="Core\Protos\objects.proto" GrpcServices="message">
+    </Protobuf>
   </ItemGroup>
 
   <ItemGroup>

@@ -48,13 +48,5 @@ namespace Htc.Mock
     /// <param name="payloadsWithDependencies"></param>
     /// <returns></returns>
     IEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies);
-
-    /// <summary>
-    /// </summary>
-    /// <param name="parentId"></param>
-    /// <param name="payloadWithDependencies"></param>
-    /// <returns></returns>
-    IEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
-                                                       IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies);
   }
 }

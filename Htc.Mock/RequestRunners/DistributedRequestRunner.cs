@@ -19,11 +19,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Google.Protobuf;
+
 using Htc.Mock.Core;
+using Htc.Mock.Core.Protos;
 
 using JetBrains.Annotations;
 
 using Microsoft.Extensions.Logging;
+
+using Request = Htc.Mock.Core.Request;
+using RunConfiguration = Htc.Mock.Core.RunConfiguration;
 
 // ReSharper disable All
 
@@ -59,7 +65,6 @@ namespace Htc.Mock.RequestRunners
     ///   Defines if the output size should be emulated.
     ///   It is assumed to be a deployment configuration.
     /// </param>
-    /// <param name="session"></param>
     public DistributedRequestRunner([NotNull] IGridClient                       gridClient,
                                     [NotNull] RunConfiguration                  runConfiguration,
                                     [NotNull] ILogger<DistributedRequestRunner> logger,
@@ -75,7 +80,7 @@ namespace Htc.Mock.RequestRunners
 
     public byte[] ProcessRequest(Request request, string taskId)
     {
-      using (var sessionClient = gridClient_.CreateSession())
+      using (var sessionClient = gridClient_.CreateSubSession(taskId))
       {
         logger_.BeginScope(new Dictionary<string, string>
                            {
@@ -90,10 +95,10 @@ namespace Htc.Mock.RequestRunners
                                 .ToDictionary(id => id,
                                               id =>
                                               {
-                                                var rr = RequestResult.FromBytes(sessionClient.GetResult(id));
+                                                var rr = RequestResult.Parser.ParseFrom(sessionClient.GetResult(id));
                                                 while (!rr.HasResult)
                                                 {
-                                                  rr = RequestResult.FromBytes(sessionClient.GetResult(rr.Value));
+                                                  rr = RequestResult.Parser.ParseFrom(sessionClient.GetResult(rr.Value));
                                                 }
 
                                                 return rr.Value;
@@ -112,8 +117,7 @@ namespace Htc.Mock.RequestRunners
           logger_.LogDebug("Will submit {count} new tasks", requests[true].Count());
           var readyRequests = requests[true];
 
-          var newIds = sessionClient.SubmitSubtasks(taskId,
-                                                    readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)));
+          var newIds = sessionClient.SubmitTasks(readyRequests.Select(r => DataAdapter.BuildPayload(runConfiguration_, r)));
 
 
           idTranslation = new Dictionary<string, string>(readyRequests.Zip(newIds, (r, s) => new { Key = r.Id, Value = s })
@@ -141,7 +145,7 @@ namespace Htc.Mock.RequestRunners
             }
 
             idTranslation[req.Id] =
-              sessionClient.SubmitSubtaskWithDependencies(taskId, DataAdapter.BuildPayload(runConfiguration_, req), newDeps);
+              sessionClient.SubmitTaskWithDependencies(DataAdapter.BuildPayload(runConfiguration_, req), newDeps);
           }
         }
 
@@ -149,10 +153,14 @@ namespace Htc.Mock.RequestRunners
 
         if (!res.Result.HasResult)
         {
-          output = new RequestResult(false, idTranslation[res.Result.Value]);
+          output = new RequestResult
+                   {
+                     HasResult = false,
+                     Value     = idTranslation[res.Result.Value],
+                   };
         }
 
-        return output.ToBytes();
+        return output.ToByteArray();
       }
     }
   }

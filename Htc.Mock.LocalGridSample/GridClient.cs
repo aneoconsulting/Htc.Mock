@@ -19,30 +19,31 @@ using Htc.Mock.RequestRunners;
 
 using Microsoft.Extensions.Logging;
 
+using System.Threading.Tasks;
+
 namespace Htc.Mock.LocalGridSample
 {
   public class GridClient : IGridClient
   {
     private readonly ILoggerFactory loggerFactory_;
-    private readonly SessionClient sessionClient_;
+    private readonly GridWorker     gridWorker_;
+    private readonly GridData       gridData_ = new();
 
     public GridClient(ILoggerFactory loggerFactory)
     {
       loggerFactory_ = loggerFactory;
-      sessionClient_ = new(loggerFactory_,
-                           new(new DelegateRequestRunnerFactory(runConfiguration
-                                                                  => new DistributedRequestRunner(this,
-                                                                                                  runConfiguration,
-                                                                                                  loggerFactory_
-                                                                                                   .CreateLogger<
-                                                                                                      DistributedRequestRunner>(),
-                                                                                                  true,
-                                                                                                  true,
-                                                                                                  true)),
-                               loggerFactory_.CreateLogger<GridWorker>()));
+      gridWorker_ = new(new DistributedRequestRunnerFactory(this,
+                                                            loggerFactory.CreateLogger<DistributedRequestRunner>(),
+                                                            true,
+                                                            true,
+                                                            true),
+                        loggerFactory.CreateLogger<GridWorker>());
     }
 
     /// <inheritdoc />
-    public ISessionClient CreateSession() => sessionClient_;
+    public ISessionClient CreateSubSession(string taskId) => new SessionClient(loggerFactory_, gridWorker_, gridData_, taskId);
+
+/// <inheritdoc />
+    public ISessionClient CreateSession() => new SessionClient(loggerFactory_, gridWorker_, gridData_, string.Empty);
   }
 }

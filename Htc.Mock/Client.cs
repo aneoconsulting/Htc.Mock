@@ -18,10 +18,13 @@
 using System.Diagnostics;
 
 using Htc.Mock.Core;
+using Htc.Mock.Core.Protos;
 
 using JetBrains.Annotations;
 
 using Microsoft.Extensions.Logging;
+
+using RunConfiguration = Htc.Mock.Core.RunConfiguration;
 
 namespace Htc.Mock
 {
@@ -53,14 +56,14 @@ namespace Htc.Mock
 
       sessionClient.WaitSubtasksCompletion(taskId).Wait();
 
-      var rawResult = RequestResult.FromBytes(sessionClient.GetResult(taskId));
+      var rawResult = RequestResult.Parser.ParseFrom(sessionClient.GetResult(taskId));
       if (rawResult is null)
       {
         logger_.LogError("Could not read result. Are you sure that WaitSubtasksCompletion waits enough ?");
       }
       else
       {
-        while (!rawResult.HasResult) rawResult = RequestResult.FromBytes(sessionClient.GetResult(rawResult.Value));
+        while (!rawResult.HasResult) rawResult = RequestResult.Parser.ParseFrom(sessionClient.GetResult(rawResult.Value));
 
         logger_.LogWarning("Final result is {result}", rawResult.Value);
         logger_.LogWarning("Expected result is 1.{result}", string.Join(".", shape));

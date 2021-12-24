@@ -17,17 +17,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
+
+using Google.Protobuf;
 
 using JetBrains.Annotations;
 
-using MessagePack;
 
 namespace Htc.Mock.Core
 {
   [PublicAPI]
-  [MessagePackObject]
-  [Union(0, typeof(ComputeRequest))]
-  [Union(1, typeof(AggregationRequest))]
   public abstract class Request
   {
     protected Request(string id, IList<string> dependencies)
@@ -43,11 +42,10 @@ namespace Htc.Mock.Core
     }
 
     [NotNull]
-    [Key(2)]
     public string Id { get; }
 
     [NotNull]
-    [Key(3)]
     public IList<string> Dependencies { get; }
+
   }
 }

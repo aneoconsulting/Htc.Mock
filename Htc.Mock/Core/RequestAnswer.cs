@@ -20,6 +20,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using Htc.Mock.Core.Protos;
+
 using JetBrains.Annotations;
 
 namespace Htc.Mock.Core
@@ -58,7 +60,7 @@ namespace Htc.Mock.Core
       }
 
       RequestId   = requestId;
-      Result      = new RequestResult(hasResult, result);
+      Result      = new (){HasResult = hasResult, Value = result};
       SubRequests = subRequests;
     }
 

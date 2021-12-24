@@ -17,6 +17,8 @@
 
 using Htc.Mock.Core;
 
+using Microsoft.Extensions.Logging;
+
 namespace Htc.Mock.RequestRunners
 {
   /// <summary>
@@ -26,5 +28,35 @@ namespace Htc.Mock.RequestRunners
   public interface IRequestRunnerFactory
   {
     IRequestRunner Create(RunConfiguration runConfiguration);
+  }
+
+  public class DistributedRequestRunnerFactory : IRequestRunnerFactory
+  {
+    private readonly IGridClient                       gridClient_;
+    private readonly ILogger<DistributedRequestRunner> logger_;
+    private readonly bool                              fastCompute_;
+    private readonly bool                              useLowMem_;
+    private readonly bool                              smallOutput_;
+
+    public DistributedRequestRunnerFactory(IGridClient                       gridClient,
+                                           ILogger<DistributedRequestRunner> logger,
+                                           bool                              fastCompute = false,
+                                           bool                              useLowMem   = false,
+                                           bool                              smallOutput = false)
+    {
+      gridClient_  = gridClient;
+      logger_      = logger;
+      fastCompute_ = fastCompute;
+      useLowMem_   = useLowMem;
+      smallOutput_ = smallOutput;
+    }
+
+    /// <inheritdoc />
+    public IRequestRunner Create(RunConfiguration runConfiguration) => new DistributedRequestRunner(gridClient_, 
+                                                                                                    runConfiguration, 
+                                                                                                    logger_, 
+                                                                                                    fastCompute_,
+                                                                                                    useLowMem_,
+                                                                                                    smallOutput_);
   }
 }

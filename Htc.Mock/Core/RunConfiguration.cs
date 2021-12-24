@@ -19,21 +19,21 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 
+using Google.Protobuf;
+
 using Htc.Mock.Utils;
 
 using JetBrains.Annotations;
 
-using MessagePack;
-
 namespace Htc.Mock.Core
 {
   [PublicAPI]
-  [MessagePackObject]
   public class RunConfiguration
   {
+    internal ByteString Serialized { get; set; } = ByteString.Empty;
+
     private const int NbSamples = 10000;
 
-    [SerializationConstructor]
     public RunConfiguration()
     {
     }
@@ -90,34 +90,24 @@ namespace Htc.Mock.Core
       Console.WriteLine($"[Htc.Mock] {nameof(Seed)}={Seed}");
     }
 
-    [Key(0)]
     public int[] DurationSamples { get; set; }
 
-    [Key(1)]
     public TimeSpan TotalCalculationTime { get; set; }
 
-    [Key(2)]
     public int TotalNbSubTasks { get; set; }
 
-    [Key(3)]
     public int Data { get; set; }
 
-    [Key(4)]
     public int Memory { get; set; }
 
-    [Key(5)]
     public int SubTasksLevels { get; set; }
 
-    [Key(6)]
     public int MinDurationMs { get; set; }
 
-    [Key(7)]
     public int MaxDurationMs { get; set; }
 
-    [Key(8)]
     public double AvgDurationMs { get; set; }
 
-    [Key(9)]
     public int Seed { get; set; }
 
     [PublicAPI]

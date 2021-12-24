@@ -20,15 +20,12 @@ using System.Collections.Generic;
 
 using JetBrains.Annotations;
 
-using MessagePack;
 
 namespace Htc.Mock.Core
 {
   [PublicAPI]
-  [MessagePackObject]
   public class ComputeRequest : Request
   {
-    [SerializationConstructor]
     public ComputeRequest(TreeWrapper treeWrapper, string id, IList<string> dependencies)
       : base(id, dependencies)
       => TreeWrapper = treeWrapper;
@@ -42,13 +39,10 @@ namespace Htc.Mock.Core
       : base(id)
       => TreeWrapper = treeWrapper ?? throw new ArgumentNullException(nameof(treeWrapper));
 
-    [Key(0)]
     public TreeWrapper TreeWrapper { get; }
     
-    [IgnoreMember]
     private Tree tree_;
 
-    [IgnoreMember]
     public Tree Tree
     {
       get

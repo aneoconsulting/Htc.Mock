@@ -16,38 +16,113 @@
 // limitations under the License.
 
 using System;
+using System.Linq;
+using System.Runtime.Serialization;
 
-using MessagePack;
-using MessagePack.Resolvers;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
+
+using Htc.Mock.Core.Protos;
 
 namespace Htc.Mock.Core
 {
   public static class DataAdapter
   {
+    
+    private static Protos.Request ToProto(Request request)
+    {
+      var r = new Protos.Request
+              {
+                Id           = request.Id,
+                Dependencies = {request. Dependencies },
+              };
+      switch (request)
+      {
+        case AggregationRequest:
+          r.AggregationRequest = new();
+          break;
+        case ComputeRequest cr:
+          r.ComputeRequest = new()
+                             {
+                               Count    = cr.TreeWrapper.Count,
+                               Encoding = ByteString.CopyFrom(cr.TreeWrapper.Encoding),
+                             };
+          break;
+      }
+
+      return r;
+    }
+
+    private static Protos.RunConfiguration ToProto(RunConfiguration configuration)
+      => new()
+         {
+           Seed                 = configuration.Seed,
+           SubTasksLevels       = configuration.SubTasksLevels,
+           TotalNbSubTasks      = configuration.TotalNbSubTasks,
+           AvgDurationMs        = configuration.AvgDurationMs,
+           Data                 = configuration.Data,
+           DurationSamples      = { configuration.DurationSamples },
+           MaxDurationMs        = configuration.MaxDurationMs,
+           Memory               = configuration.Memory,
+           MinDurationMs        = configuration.MinDurationMs,
+           TotalCalculationTime = Duration.FromTimeSpan(configuration.TotalCalculationTime),
+         };
+
+    private static Request FromProto(Protos.Request r)
+    {
+      switch (r.SubClassCase)
+      {
+        case Protos.Request.SubClassOneofCase.AggregationRequest:
+          return new AggregationRequest(r.Id, r.Dependencies);
+        case Protos.Request.SubClassOneofCase.ComputeRequest:
+          return new ComputeRequest(new TreeWrapper
+                                    {
+                                      Count    = r.ComputeRequest.Count,
+                                      Encoding = r.ComputeRequest.Encoding.ToByteArray(),
+                                    },
+                                    r.Id,
+                                    r.Dependencies
+                                   );
+        case Protos.Request.SubClassOneofCase.None:
+        default:
+          throw new SerializationException($"Error while deserializing {nameof(Request)}");
+      }
+    }
+
+    private static RunConfiguration FromProto(Protos.RunConfiguration configuration)
+      => new()
+         {
+           Seed                 = configuration.Seed,
+           SubTasksLevels       = configuration.SubTasksLevels,
+           TotalNbSubTasks      = configuration.TotalNbSubTasks,
+           AvgDurationMs        = configuration.AvgDurationMs,
+           Data                 = configuration.Data,
+           DurationSamples      = configuration.DurationSamples.ToArray(),
+           MaxDurationMs        = configuration.MaxDurationMs,
+           Memory               = configuration.Memory,
+           MinDurationMs        = configuration.MinDurationMs,
+           TotalCalculationTime = configuration.TotalCalculationTime.ToTimeSpan(),
+         };
+
     public static byte[] BuildPayload(RunConfiguration runConfiguration, Request request)
     {
-      var payloadBuilder = new PayloadBuilder { Request = request, RunConfiguration = runConfiguration };
+      var payloadBuilder = new PayloadBuilder
+                           {
+                             Request = ToProto(request).ToByteString(), 
+                             RunConfiguration = runConfiguration.Serialized.Length==0? ToProto(runConfiguration).ToByteString():runConfiguration.Serialized,
+                           };
 
-      return MessagePackSerializer.Serialize(payloadBuilder, StandardResolverAllowPrivate.Options);
+      return payloadBuilder.ToByteArray();
     }
 
     public static Tuple<RunConfiguration, Request> ReadPayload(byte[] payload)
     {
-      var payloadBuilder = MessagePackSerializer.Deserialize<PayloadBuilder>(payload);
+      var payloadBuilder = PayloadBuilder.Parser.ParseFrom(payload);
 
-      var output = Tuple.Create(payloadBuilder.RunConfiguration, payloadBuilder.Request);
+      var output = Tuple.Create(FromProto(Protos.RunConfiguration.Parser.ParseFrom(payloadBuilder.RunConfiguration)), 
+                                FromProto(Protos.Request.Parser.ParseFrom(payloadBuilder.Request)));
 
       return output;
-    }
-
-    [MessagePackObject]
-    public class PayloadBuilder
-    {
-      [Key(1)]
-      public RunConfiguration RunConfiguration { get; set; }
-
-      [Key(2)]
-      public Request Request { get; set; }
     }
   }
 }
