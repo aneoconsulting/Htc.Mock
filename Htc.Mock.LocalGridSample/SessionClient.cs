@@ -33,10 +33,11 @@ namespace Htc.Mock.LocalGridSample
     private readonly ConcurrentDictionary<string, CancellationTokenSource> cancelSources_ = new();
     private readonly GridWorker                                            gridWorker_;
     private readonly ILogger<SessionClient>                                logger_;
-    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists_   = new();
-    private readonly ConcurrentDictionary<string, byte[]>                  resultStore_   = new();
-    private readonly ConcurrentDictionary<string, Task>                    statusStore_   = new();
-    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   subtasksLists_ = new();
+    private readonly ConcurrentDictionary<string, ConcurrentBag<string>>   parentLists_        = new();
+    private readonly ConcurrentDictionary<string, byte[]>                  resultStore_        = new();
+    private readonly ConcurrentDictionary<string, Task>                    statusStore_        = new();
+    private readonly ConcurrentDictionary<string, ConcurrentQueue<string>> subtasksLists_      = new();
+    private readonly ConcurrentDictionary<string, Task>                    subTasksCompletion_ = new();
     private          int                                                   taskCount_;
 
 
@@ -57,18 +58,7 @@ namespace Htc.Mock.LocalGridSample
     }
 
     /// <inheritdoc />
-    public async Task WaitSubtasksCompletion(string id)
-    {
-      await statusStore_[id];
-      var subtasks = subtasksLists_[id];
-      int nbSubtasks;
-      do
-      {
-        nbSubtasks = subtasks.Count;
-        await Task.WhenAll(subtasks.Select(s => statusStore_[s]));
-        subtasks = subtasksLists_[id];
-      } while (nbSubtasks != subtasks.Count);
-    }
+    public Task WaitSubtasksCompletion(string id) => subTasksCompletion_[id];
 
     /// <inheritdoc />
     public IEnumerable<string> SubmitTasksWithDependencies(IEnumerable<Tuple<byte[], IList<string>>> payloadsWithDependencies)
@@ -84,8 +74,10 @@ namespace Htc.Mock.LocalGridSample
                                           statusStore_[taskId] = Task.Factory
                                                                      .StartNew(async () =>
                                                                                {
-                                                                                 await Task.WhenAll(p.Item2
-                                                                                                     .Select(WaitSubtasksCompletion));
+                                                                                 await p.Item2
+                                                                                        .Select(WaitSubtasksCompletion)
+                                                                                        .WhenAll();
+
                                                                                  var result = gridWorker_.Execute(taskId, p.Item1);
                                                                                  logger_.LogTrace("Store result for task {id}",
                                                                                                   taskId);
@@ -93,14 +85,29 @@ namespace Htc.Mock.LocalGridSample
                                                                                },
                                                                                cancelSources_[taskId].Token)
                                                                      .Unwrap();
+                                          subTasksCompletion_[taskId] = WaitForSubTaskCompletionAsync(taskId);
 
                                           return taskId;
                                         });
 
+    private Task WaitForSubTaskCompletionAsync(string taskId)
+    {
+      return Task.Factory
+                 .StartNew(async () =>
+                           {
+                             await statusStore_[taskId];
+                             while (subtasksLists_[taskId].TryDequeue(out var childId))
+                             {
+                               await subTasksCompletion_[childId];
+                             }
+                           }
+                          ).Unwrap();
+    }
+
 
     /// <inheritdoc />
     public IEnumerable<string> SubmitSubtasksWithDependencies(string                                    parentId,
-                                                                   IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies)
+                                                              IEnumerable<Tuple<byte[], IList<string>>> payloadWithDependencies)
       => payloadWithDependencies.Select(p =>
                                         {
                                           var taskId = $"task_{Interlocked.Increment(ref taskCount_)}";
@@ -110,25 +117,28 @@ namespace Htc.Mock.LocalGridSample
                                           subtasksLists_[taskId] = new();
 
                                           logger_.LogDebug("Task with Id {id} is a child of {parentId}",
-                                                                 taskId, parentId);
+                                                           taskId, parentId);
                                           parentLists_[taskId].Add(parentId);
 
-                                          subtasksLists_[parentId].Add(taskId);
-                                          foreach (var parent in parentLists_[parentId])
-                                            subtasksLists_[parent].Add(taskId);
+                                          subtasksLists_[parentId].Enqueue(taskId);
+                                          //foreach (var parent in parentLists_[parentId])
+                                          //  subtasksLists_[parent].Enqueue(taskId);
 
                                           logger_.LogTrace("Launch a new System.Task to process task {id}", taskId);
-                                          statusStore_[taskId] = Task.Factory.StartNew(async () =>
-                                                                                       {
-                                                                                         await p.Item2.Select(WaitSubtasksCompletion)
-                                                                                                .WhenAll();
+                                          statusStore_[taskId] = Task.Factory
+                                                                     .StartNew(async () =>
+                                                                               {
+                                                                                 await p.Item2.Select(WaitSubtasksCompletion)
+                                                                                        .WhenAll();
 
 
-                                                                                         var result = gridWorker_.Execute(taskId, p.Item1);
-                                                                                         logger_.LogTrace("Store result for task {id}",
-                                                                                                          taskId);
-                                                                                         resultStore_[taskId] = result;
-                                                                                       }).Unwrap();
+                                                                                 var result = gridWorker_.Execute(taskId, p.Item1);
+                                                                                 logger_.LogTrace("Store result for task {id}",
+                                                                                                  taskId);
+                                                                                 resultStore_[taskId] = result;
+                                                                               }).Unwrap();
+
+                                          subTasksCompletion_[taskId] = WaitForSubTaskCompletionAsync(taskId);
                                           return taskId;
                                         });
 

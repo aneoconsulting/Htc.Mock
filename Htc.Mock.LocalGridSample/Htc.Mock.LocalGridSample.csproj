@@ -6,7 +6,9 @@
     <IsPackable>false</IsPackable>
     <StartupObject>Htc.Mock.LocalGridSample.Program</StartupObject>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <DebugType>embedded</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

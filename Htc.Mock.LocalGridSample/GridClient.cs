@@ -19,29 +19,30 @@ using Htc.Mock.RequestRunners;
 
 using Microsoft.Extensions.Logging;
 
-namespace Htc.Mock.LocalGridSample;
-
-public class GridClient : IGridClient
+namespace Htc.Mock.LocalGridSample
 {
-  private readonly ILoggerFactory loggerFactory_;
-  private readonly SessionClient  sessionClient_;
-
-  public GridClient(ILoggerFactory loggerFactory)
+  public class GridClient : IGridClient
   {
-    loggerFactory_ = loggerFactory;
-    sessionClient_ = new(loggerFactory_,
-                         new(new DelegateRequestRunnerFactory(runConfiguration
-                                                                => new DistributedRequestRunner(this,
-                                                                                                runConfiguration,
-                                                                                                loggerFactory_
-                                                                                                 .CreateLogger<
-                                                                                                    DistributedRequestRunner>(),
-                                                                                                true,
-                                                                                                true,
-                                                                                                true)),
-                             loggerFactory_.CreateLogger<GridWorker>()));
-  }
+    private readonly ILoggerFactory loggerFactory_;
+    private readonly SessionClient sessionClient_;
 
-  /// <inheritdoc />
-  public ISessionClient CreateSession() => sessionClient_;
+    public GridClient(ILoggerFactory loggerFactory)
+    {
+      loggerFactory_ = loggerFactory;
+      sessionClient_ = new(loggerFactory_,
+                           new(new DelegateRequestRunnerFactory(runConfiguration
+                                                                  => new DistributedRequestRunner(this,
+                                                                                                  runConfiguration,
+                                                                                                  loggerFactory_
+                                                                                                   .CreateLogger<
+                                                                                                      DistributedRequestRunner>(),
+                                                                                                  true,
+                                                                                                  true,
+                                                                                                  true)),
+                               loggerFactory_.CreateLogger<GridWorker>()));
+    }
+
+    /// <inheritdoc />
+    public ISessionClient CreateSession() => sessionClient_;
+  }
 }

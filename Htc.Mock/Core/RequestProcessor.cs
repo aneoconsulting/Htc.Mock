@@ -91,15 +91,15 @@ namespace Htc.Mock.Core
 
     protected RequestAnswer ComputeResult(ComputeRequest request)
     {
-      if (logger_.IsEnabled(LogLevel.Information))
-        logger_.LogInformation("Start processing request {id} with tree shape {shape}",
+      if (logger_.IsEnabled(LogLevel.Debug))
+        logger_.LogDebug("Start processing request {id} with tree shape {shape}",
                                request.Id,
                                string.Join(".", request.Tree.GetShape()));
 
       var subtrees = request.Tree.GetSubTrees().ToList();
 
-      if (logger_.IsEnabled(LogLevel.Information) && subtrees.Any())
-        logger_.LogInformation("Request {id} generated subtrees with shape {shapes}",
+      if (logger_.IsEnabled(LogLevel.Debug) && subtrees.Any())
+        logger_.LogDebug("Request {id} generated subtrees with shape {shapes}",
                                request.Id,
                                string.Join(" ", subtrees.Select(tree => tree.GetShapeString())));
 
