@@ -19,8 +19,6 @@ using Htc.Mock.RequestRunners;
 
 using Microsoft.Extensions.Logging;
 
-using System.Threading.Tasks;
-
 namespace Htc.Mock.LocalGridSample
 {
   public class GridClient : IGridClient

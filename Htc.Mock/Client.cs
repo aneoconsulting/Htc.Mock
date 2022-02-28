@@ -18,7 +18,6 @@
 using System.Diagnostics;
 
 using Htc.Mock.Core;
-using Htc.Mock.Core.Protos;
 
 using JetBrains.Annotations;
 

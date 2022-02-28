@@ -17,9 +17,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
-
-using Google.Protobuf;
 
 using JetBrains.Annotations;
 
@@ -41,10 +38,8 @@ namespace Htc.Mock.Core
       if (string.IsNullOrEmpty(id)) throw new ArgumentException("id cannot be null or empty", nameof(id));
     }
 
-    [NotNull]
     public string Id { get; }
 
-    [NotNull]
     public IList<string> Dependencies { get; }
 
   }

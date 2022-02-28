@@ -70,7 +70,7 @@ namespace Htc.Mock.Core
           if (builder.Depth == 0)
           {
             yield return builder.Build();
-            builder = new TreeBuilder();
+            builder = new();
             if (i + 1 < tree.Encoding.Length - 1)
               if (!tree.Encoding[i + 1])
                 throw new ArgumentException("The Tree is not well formed; tree already contains several root trees", nameof(tree));

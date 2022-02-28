@@ -16,7 +16,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections;
 
 using Microsoft.Extensions.Logging;
 
@@ -54,7 +53,7 @@ namespace Htc.Mock.Core
     {
       shape = new[] { 1 };
       return configuration.SubTasksLevels == 0
-               ? new ComputeRequest("root", new Tree(new BitArray(new[] { true, false })))
+               ? new("root", new(new(new[] { true, false })))
                : new ComputeRequest("root", configuration.BuildTree(out shape, logger));
     }
   }

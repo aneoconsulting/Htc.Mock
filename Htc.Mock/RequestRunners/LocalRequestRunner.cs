@@ -39,7 +39,7 @@ namespace Htc.Mock.RequestRunners
 
     private readonly RequestProcessor requestProcessor_;
 
-    private readonly ConcurrentDictionary<string, RequestResult> results_ = new ConcurrentDictionary<string, RequestResult>();
+    private readonly ConcurrentDictionary<string, RequestResult> results_ = new();
 
     /// <summary>
     ///   Builds a <c>DistributedRequestProcessor</c>

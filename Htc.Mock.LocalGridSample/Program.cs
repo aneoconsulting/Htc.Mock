@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-
 using JetBrains.Annotations;
 
 using Microsoft.Extensions.Logging;
@@ -59,7 +57,7 @@ namespace Htc.Mock.LocalGridSample
       // Code below is standard.
       var client = new Client(gridClient, loggerFactory.CreateLogger<Client>());
 
-      client.Start(new(new TimeSpan(0, 0, 0, 0, 100), 50000, 1, 1, 4));
+      client.Start(new(new(0, 0, 0, 0, 100), 50000, 1, 1, 4));
     }
   }
 }

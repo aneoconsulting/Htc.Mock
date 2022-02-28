@@ -20,51 +20,33 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-using Htc.Mock.Core.Protos;
-
-using JetBrains.Annotations;
-
 namespace Htc.Mock.Core
 {
-  public class RequestResult
+  public record RequestResult(bool HasResult, string Value)
   {
-    public bool   HasResult { get; set; }
-    public string Value     { get; set; } = string.Empty;
+    public RequestResult() : this(false, string.Empty){}
+
+    public RequestResult(string value):this(true, value){}
   }
 
-  public class RequestAnswer
+  public record RequestAnswer
   {
 
     public RequestAnswer(string requestId, string result)
       : this(requestId, result, true, Array.Empty<Request>())
     {
-      Debug.Assert(!string.IsNullOrEmpty(requestId));
-      Debug.Assert(!string.IsNullOrEmpty(result));
     }
 
     public RequestAnswer(string requestId, string resultRedirection, IEnumerable<Request> subRequests)
       : this(requestId, resultRedirection, false, subRequests)
     {
-      Debug.Assert(!string.IsNullOrEmpty(requestId));
-      Debug.Assert(!string.IsNullOrEmpty(resultRedirection));
-      Debug.Assert(subRequests != null);
-      Debug.Assert(subRequests.Any());
     }
 
     private RequestAnswer(string requestId, string result, bool hasResult, IEnumerable<Request> subRequests)
     {
       Debug.Assert(!string.IsNullOrEmpty(requestId));
-      Debug.Assert(subRequests != null);
-      if (hasResult)
-      {
-        Debug.Assert(!subRequests.Any());
-        Debug.Assert(!string.IsNullOrEmpty(result));
-      }
-      else
-      {
-        Debug.Assert(subRequests.Any());
-        Debug.Assert(!string.IsNullOrEmpty(result));
-      }
+      Debug.Assert(!string.IsNullOrEmpty(result));
+      Debug.Assert(subRequests.Any() != hasResult);
 
       RequestId   = requestId;
       Result = new()
@@ -75,15 +57,10 @@ namespace Htc.Mock.Core
       SubRequests = subRequests;
     }
 
-    [NotNull]
     public string RequestId { get; }
 
-    [NotNull]
     public RequestResult Result { get; }
 
-    /// <summary>
-    /// </summary>
-    [NotNull]
     public IEnumerable<Request> SubRequests { get; }
   }
 }

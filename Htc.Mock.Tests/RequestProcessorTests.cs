@@ -19,7 +19,6 @@ using System.Collections.Concurrent;
 using System.Linq;
 
 using Htc.Mock.Core;
-using Htc.Mock.Core.Protos;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -62,7 +61,7 @@ namespace Htc.Mock.Tests
       var configuration    = new RunConfiguration(new(0, 0, 1), 1, 1, 1, 1);
       var requestProcessor = new RequestProcessor(true, true, true, configuration, NullLogger.Instance);
 
-      var request = new ComputeRequest("root", new Tree(new(new[]
+      var request = new ComputeRequest("root", new(new(new[]
                                                        {
                                                          true,
                                                          true,

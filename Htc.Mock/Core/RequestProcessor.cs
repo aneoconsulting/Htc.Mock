@@ -17,7 +17,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -38,11 +37,11 @@ namespace Htc.Mock.Core
     private readonly bool             smallOutput_;
     private readonly bool             useLowMem_;
 
-    public RequestProcessor(bool                       fastCompute,
-                            bool                       useLowMem,
-                            bool                       smallOutput,
-                            [NotNull] RunConfiguration runConfiguration,
-                            [NotNull] ILogger          logger)
+    public RequestProcessor(bool             fastCompute,
+                            bool             useLowMem,
+                            bool             smallOutput,
+                            RunConfiguration runConfiguration,
+                            ILogger       logger)
     {
       fastCompute_      = fastCompute;
       useLowMem_        = useLowMem;
@@ -55,7 +54,6 @@ namespace Htc.Mock.Core
     [PublicAPI]
     public RequestAnswer GetResult(Request request, IDictionary<string, string> inputs)
     {
-      Debug.Assert(inputs != null);
       var output = EmulateComputation(request);
       var res    = ComputeResultDispatch(request, inputs);
       output.Wait();
@@ -65,7 +63,6 @@ namespace Htc.Mock.Core
     protected RequestAnswer ComputeResult(AggregationRequest request, IDictionary<string, string> inputs)
     {
       logger_.LogTrace($"{nameof(ComputeRequest)}: Processing a AggregationRequest.");
-      Debug.Assert(inputs != null);
 
       var aggregator = new Dictionary<int, int>();
 
@@ -86,7 +83,7 @@ namespace Htc.Mock.Core
       if (logger_.IsEnabled(LogLevel.Information))
         logger_.LogInformation("AggregationRequest {id} computed {result}", request.Id, result);
 
-      return new RequestAnswer(request.Id, result);
+      return new (request.Id, result);
     }
 
     protected RequestAnswer ComputeResult(ComputeRequest request)

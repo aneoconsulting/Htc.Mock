@@ -111,46 +111,46 @@ namespace Htc.Mock.Core
     public int Seed { get; set; }
 
     [PublicAPI]
-    public static RunConfiguration Minimal => new RunConfiguration(new TimeSpan(0, 0, 0, 0, 100),
-                                                                   0,
-                                                                   1,
-                                                                   1,
-                                                                   0);
+    public static RunConfiguration Minimal => new(new(0, 0, 0, 0, 100),
+                                                  0,
+                                                  1,
+                                                  1,
+                                                  0);
 
     [PublicAPI]
-    public static RunConfiguration XSmall => new RunConfiguration(new TimeSpan(0, 2, 0),
-                                                                  10,
-                                                                  1,
-                                                                  1,
-                                                                  1);
+    public static RunConfiguration XSmall => new(new(0, 2, 0),
+                                                 10,
+                                                 1,
+                                                 1,
+                                                 1);
 
     [PublicAPI]
-    public static RunConfiguration Small => new RunConfiguration(new TimeSpan(0, 10, 0),
-                                                                 100,
-                                                                 1,
-                                                                 1,
-                                                                 2);
+    public static RunConfiguration Small => new(new(0, 10, 0),
+                                                100,
+                                                1,
+                                                1,
+                                                2);
 
     [PublicAPI]
-    public static RunConfiguration Medium => new RunConfiguration(new TimeSpan(1, 0, 0),
-                                                                  10000,
-                                                                  1,
-                                                                  1,
-                                                                  3);
+    public static RunConfiguration Medium => new(new(1, 0, 0),
+                                                 10000,
+                                                 1,
+                                                 1,
+                                                 3);
 
     [PublicAPI]
-    public static RunConfiguration Large => new RunConfiguration(new TimeSpan(36, 0, 0),
-                                                                 4000000,
-                                                                 1,
-                                                                 2,
-                                                                 5);
+    public static RunConfiguration Large => new(new(36, 0, 0),
+                                                4000000,
+                                                1,
+                                                2,
+                                                5);
 
     [PublicAPI]
-    public static RunConfiguration XLarge => new RunConfiguration(new TimeSpan(24000, 0, 0),
-                                                                  6000000,
-                                                                  1,
-                                                                  3,
-                                                                  7);
+    public static RunConfiguration XLarge => new(new(24000, 0, 0),
+                                                 6000000,
+                                                 1,
+                                                 3,
+                                                 7);
 
 
     public int GetTaskDurationMs(string taskId)

@@ -17,6 +17,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 using JetBrains.Annotations;
 
@@ -29,7 +30,7 @@ namespace Htc.Mock.Core
                               IList<string> dependencies)
       : base(id, dependencies)
     {
-      Debug.Assert(dependencies != null);
+      Debug.Assert(dependencies.Any());
     }
   }
 }
