@@ -1,21 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net5.0;net461;netstandard2.0</TargetFrameworks>
-    <AutoGenerateBindingRedirects></AutoGenerateBindingRedirects>
+    <TargetFrameworks>net6.0;net5.0</TargetFrameworks>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <Description>This package contains components to test the functionnalities of HTC grid systems (e.g. IBM Symphony, Tibco Datasynapse, etc.).</Description>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <Copyright>Copyright (c) 2021-2021 ANEO.</Copyright>
     <Authors>Wilfried Kirschenmann</Authors>
-    <Company>ANEO</Company>
-    <AssemblyVersion>1.1.0.2</AssemblyVersion>
-    <FileVersion>1.1.0.2</FileVersion>
-    <Version>1.1.0</Version>
     <WarningLevel>5</WarningLevel>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PackageVersion>3.0.0-alpha11</PackageVersion>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -27,9 +26,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
-    <PackageReference Include="protobuf-net" Version="3.0.101" />
-    <PackageReference Include="protobuf-net.BuildTools" Version="3.0.81" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+    <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+    
+    <PackageReference Include="Google.Protobuf" Version="3.19.1" />
+    <PackageReference Include="Grpc.Tools" Version="2.41.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  
+
+  <ItemGroup>
+    <Protobuf Include="Core\Protos\objects.proto" GrpcServices="message">
+    </Protobuf>
   </ItemGroup>
 
   <ItemGroup>

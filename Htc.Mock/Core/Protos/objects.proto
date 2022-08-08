@@ -1,0 +1,63 @@
+﻿syntax = "proto3";
+
+import "google/protobuf/duration.proto"; 
+
+option csharp_namespace = "Htc.Mock.Core.Protos";
+package Htc.Mock.Core.Protos;
+
+message RequestResult
+{  enum ResultType {
+		UNKNOWN = 0;
+		FORWARD = 1;
+		VALUE = 2;
+	}
+	ResultType Type = 1;
+	string Value = 2;
+}
+
+message RequestHierarchy
+{
+
+	message ComputeRequest
+	{
+		bytes Encoding = 1;
+		int32 Count = 2;
+	}
+
+	message AggregationRequest
+	{
+	}
+}
+
+message Request
+{
+
+	string Id = 1;
+	repeated string Dependencies = 2;
+	oneof SubClass
+	{
+		RequestHierarchy.ComputeRequest ComputeRequest = 3;
+		RequestHierarchy.AggregationRequest AggregationRequest = 4;
+	}
+}
+
+message RunConfiguration
+{
+	repeated int32 DurationSamples = 1;
+	google.protobuf.Duration TotalCalculationTime =2;
+	int32 TotalNbSubTasks =3;
+	int32 Data =4;
+	int32 Memory =5;
+	int32 SubTasksLevels =6;
+	int32 MinDurationMs =7;
+	int32 MaxDurationMs =8;
+	int32 Seed =9;
+	double AvgDurationMs =10;
+}
+
+message PayloadBuilder
+{
+	bytes RunConfiguration=1;
+	bytes Request=2;
+}
+

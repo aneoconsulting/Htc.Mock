@@ -1,63 +1,70 @@
-﻿/* Client.cs is part of the Htc.Mock solution.
-    
-   Copyright (c) 2021-2021 ANEO. 
-     W. Kirschenmann (https://github.com/wkirschenmann)
-  
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+﻿// Client.cs is part of the Htc.Mock solution.
+// 
+// Copyright (c) 2021-2021 ANEO. All rights reserved.
+// * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-*/ 
-
-
-using System;
-using System.Text;
+using System.Diagnostics;
 
 using Htc.Mock.Core;
 
 using JetBrains.Annotations;
+
+using Microsoft.Extensions.Logging;
+
+using RunConfiguration = Htc.Mock.Core.RunConfiguration;
 
 namespace Htc.Mock
 {
   [PublicAPI]
   public class Client
   {
-    private readonly IGridClient gridClient;
-    private readonly IDataClient dataClient;
+    private readonly IGridClient     gridClient_;
+    private readonly ILogger<Client> logger_;
 
-    public Client(IGridClient gridClient, IDataClient dataClient)
+    public Client(IGridClient gridClient, ILogger<Client> logger)
     {
-      this.gridClient = gridClient;
-      this.dataClient = dataClient;
+      gridClient_ = gridClient;
+      logger_     = logger;
     }
 
     [PublicAPI]
     public void Start(RunConfiguration runConfiguration)
     {
-      var session = gridClient.CreateSession();
+      logger_.LogInformation("Start new run with {configuration}", runConfiguration.ToString());
+      var watch = Stopwatch.StartNew();
 
-      var request = runConfiguration.DefaultHeadRequest();
+      var sessionClient = gridClient_.CreateSession();
 
-      var taskId = gridClient.SubmitTask(session, DataAdapter.BuildPayload(runConfiguration, request));
+      var request = runConfiguration.BuildRequest(out var shape, logger_);
 
-      gridClient.WaitSubtasksCompletion(taskId);
+      var taskId = sessionClient.SubmitTask(DataAdapter.BuildPayload(runConfiguration, request));
 
-      // the mock project has been designed so that output contains dummy data
-      _ = gridClient.GetResult(taskId);
+      logger_.LogInformation("Submitted root task {taskId}", taskId);
+      sessionClient.WaitSubtasksCompletion(taskId).Wait();
 
-      // the proper result is stored in the data cache
-      var result = dataClient.GetData(request.Id);
+      var rawResult = DataAdapter.ReadResult(sessionClient.GetResult(taskId));
+      while (!rawResult.HasResult)
+      {
+        rawResult = DataAdapter.ReadResult(sessionClient.GetResult(rawResult.Value));
+      }
 
-      Console.WriteLine($"[Htc.Mock] Final result is {Encoding.ASCII.GetString(result)}");
-      Console.WriteLine($"[Htc.Mock] If run with configuration = Medium, result should be Aggregate_3926158863_result");
+      logger_.LogWarning("Final result is {result}", rawResult.Value);
+      logger_.LogWarning("Expected result is 1.{result}", string.Join(".", shape));
+
+      watch.Stop();
+      logger_.LogWarning("Client was executed in {time}s", watch.Elapsed.TotalSeconds);
     }
 
 
@@ -65,4 +72,3 @@ namespace Htc.Mock
     public void Start() => Start(RunConfiguration.Medium);
   }
 }
-

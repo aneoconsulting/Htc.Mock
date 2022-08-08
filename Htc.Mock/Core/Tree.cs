@@ -1,4 +1,4 @@
-﻿// Request.cs is part of the Htc.Mock solution.
+﻿// Tree.cs is part of the Htc.Mock solution.
 // 
 // Copyright (c) 2021-2021 ANEO. All rights reserved.
 // * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
@@ -15,32 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-
-using JetBrains.Annotations;
-
-
 namespace Htc.Mock.Core
 {
-  [PublicAPI]
-  public abstract class Request
+  public class Tree
   {
-    protected Request(string id, IList<string> dependencies)
-    {
-      Id           = id;
-      Dependencies = dependencies;
-    }
+    public Tree(BitArray encoding) => Encoding = encoding;
 
-    protected Request(string id) : this(id, Array.Empty<string>())
-    {
-      Id = id ?? throw new ArgumentNullException(nameof(id));
-      if (string.IsNullOrEmpty(id)) throw new ArgumentException("id cannot be null or empty", nameof(id));
-    }
-
-    public string Id { get; }
-
-    public IList<string> Dependencies { get; }
-
+    public BitArray Encoding { get; }
   }
 }

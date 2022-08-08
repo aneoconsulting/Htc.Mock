@@ -1,4 +1,4 @@
-﻿// Request.cs is part of the Htc.Mock solution.
+﻿// EnumerableExt.cs is part of the Htc.Mock solution.
 // 
 // Copyright (c) 2021-2021 ANEO. All rights reserved.
 // * Wilfried KIRSCHENMANN (https://github.com/wkirschenmann)
@@ -17,30 +17,24 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
-using JetBrains.Annotations;
-
-
-namespace Htc.Mock.Core
+namespace Htc.Mock.Utils
 {
-  [PublicAPI]
-  public abstract class Request
+  public static class EnumerableExt
   {
-    protected Request(string id, IList<string> dependencies)
+    public static void EvaluateAll<T>(this IEnumerable<T> enumerable, Action<T> action)
     {
-      Id           = id;
-      Dependencies = dependencies;
+      foreach (var element in enumerable) action(element);
     }
 
-    protected Request(string id) : this(id, Array.Empty<string>())
+    public static Task WhenAll(this IEnumerable<Task> tasks) => Task.WhenAll(tasks);
+
+    public static Task<TResult[]> WhenAll<TResult>(this IEnumerable<Task<TResult>> tasks) => Task.WhenAll(tasks);
+
+    public static async IAsyncEnumerable<TResult> AsAsyncEnumerable<TResult>(this IEnumerable<Task<TResult>> tasks)
     {
-      Id = id ?? throw new ArgumentNullException(nameof(id));
-      if (string.IsNullOrEmpty(id)) throw new ArgumentException("id cannot be null or empty", nameof(id));
+      foreach (var task in tasks) yield return await task;
     }
-
-    public string Id { get; }
-
-    public IList<string> Dependencies { get; }
-
   }
 }
